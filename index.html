@@ -11,6 +11,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <style>
 :root{
@@ -164,13 +166,47 @@ table.ref tr:last-child td{border-bottom:none;}
 /* ---------- status line ---------- */
 .status-line{
 	display:flex;
-	gap:22px;
+	gap:14px;
 	flex-wrap:wrap;
+	align-items:center;
 	margin-bottom:16px;
 	font-size:13px;
 	color:var(--ink-600);
 }
 .status-line b{color:var(--navy-950); font-family:'JetBrains Mono',monospace;}
+.sync-badge{
+	display:inline-flex;
+	align-items:center;
+	gap:6px;
+	font-size:11.5px;
+	font-weight:700;
+	padding:5px 11px;
+	border-radius:999px;
+	letter-spacing:.02em;
+}
+.sync-badge::before{
+	content:"";
+	width:7px; height:7px;
+	border-radius:50%;
+	flex-shrink:0;
+}
+.sync-badge.sync-live{background:var(--ok-bg); color:var(--green-700); border:1px solid #cfe3d6;}
+.sync-badge.sync-live::before{background:var(--green-600);}
+.sync-badge.sync-local{background:#fdf2df; color:var(--gold-600); border:1px solid #f0ddb0;}
+.sync-badge.sync-local::before{background:var(--gold-600);}
+.sync-badge.sync-error{background:#fbeae5; color:var(--danger); border:1px solid #f0c3b5;}
+.sync-badge.sync-error::before{background:var(--danger);}
+.sync-warning{
+	font-size:12px;
+	color:var(--gold-600);
+	background:#fdf2df;
+	border-left:3px solid var(--gold-500);
+	padding:9px 12px;
+	border-radius:4px;
+	margin-bottom:16px;
+	line-height:1.5;
+}
+.sync-warning a{color:var(--gold-600); font-weight:600;}
 
 /* ---------- toolbar ---------- */
 .toolbar{
@@ -371,15 +407,18 @@ footer a{color:var(--ink-600);}
 
 	<div class="card">
 		<h2>Ordem de convocação e preferências <span class="tag">obrigatório</span></h2>
-		<p class="lead">Para cada um dos 46 auditores fiscais (listados abaixo em ordem alfabética), selecione as 8 lotações em ordem de preferência, da esquerda (1ª preferência) para a direita (8ª preferência). Uma lotação já escolhida em um dropdown deixa de ficar disponível nos demais dropdowns da mesma pessoa. A designação final de cada auditor é recalculada automaticamente, respeitando a ordem de convocação: primeiro se atende, integralmente, a preferência de quem foi convocado em 1º lugar; depois a de quem foi convocado em 2º lugar; e assim sucessivamente, até a última vaga. Suas seleções ficam salvas neste navegador e são recarregadas automaticamente da próxima vez que você acessar a página.</p>
+		<p class="lead">Para cada um dos 46 auditores fiscais (listados abaixo em ordem alfabética), selecione as 8 lotações em ordem de preferência, da esquerda (1ª preferência) para a direita (8ª preferência). Uma lotação já escolhida em um dropdown deixa de ficar disponível nos demais dropdowns da mesma pessoa. A designação final de cada auditor é recalculada automaticamente, respeitando a ordem de convocação: primeiro se atende, integralmente, a preferência de quem foi convocado em 1º lugar; depois a de quem foi convocado em 2º lugar; e assim sucessivamente, até a última vaga. As seleções são sincronizadas em tempo real entre todas as pessoas que acessarem esta página: uma alteração feita por qualquer um dos 46 auditores aparece instantaneamente para todos os demais, sem precisar recarregar.</p>
+
+		<div id="avisoLocal" class="sync-warning hidden">⚠️ A sincronização em tempo real com o Firebase não está configurada (ou não foi possível conectar). Suas seleções estão sendo salvas apenas neste navegador, e não serão vistas pelas outras 45 pessoas. Veja o <code>README.md</code> do repositório para configurar a sincronização entre todos os usuários.</div>
 
 		<div class="status-line">
+			<span id="syncBadge" class="sync-badge sync-local">Conectando…</span>
 			<span>Lotações já atribuídas: <b id="statusAtribuidas">0</b> / <b id="statusTotal">46</b></span>
 			<span>Aguardando lotação: <b id="statusPendentes">46</b></span>
 		</div>
 
 		<div class="toolbar">
-			<button type="button" class="btn-clear" id="btnLimpar">Limpar todas as seleções</button>
+			<button type="button" class="btn-clear" id="btnLimpar">Limpar todas as seleções (de todos os usuários)</button>
 		</div>
 
 		<div class="assign-wrap">
@@ -488,7 +527,130 @@ var PESSOAS_BASE = [
 
 var pessoas = [];
 
-// ======================= ESTADO / PERSISTÊNCIA =======================
+// ======================= FIREBASE (SINCRONIZAÇÃO ENTRE TODOS OS USUÁRIOS) =======================
+//
+// Para que as seleções feitas por qualquer uma das 46 pessoas apareçam para todas as
+// outras (e não apenas no navegador de quem preencheu), este simulador usa o Firebase
+// Realtime Database, um banco de dados gratuito do Google que sincroniza os dados em
+// tempo real entre todos os navegadores conectados a este mesmo projeto.
+//
+// COMO HABILITAR: crie um projeto gratuito em https://console.firebase.google.com/,
+// ative o "Realtime Database" e substitua os valores de exemplo abaixo pela
+// configuração ("firebaseConfig") do SEU projeto. O passo a passo completo está no
+// README.md do repositório. Enquanto os valores de exemplo não forem substituídos,
+// o simulador continua funcionando normalmente, mas salvando as seleções apenas no
+// navegador de cada pessoa (modo local), com um aviso visível na página.
+
+var FIREBASE_CONFIG = {
+	apiKey: "SUA_API_KEY_AQUI",
+	authDomain: "SEU_PROJETO.firebaseapp.com",
+	databaseURL: "https://SEU_PROJETO-default-rtdb.firebaseio.com",
+	projectId: "SEU_PROJETO",
+	storageBucket: "SEU_PROJETO.appspot.com",
+	messagingSenderId: "000000000000",
+	appId: "1:000000000000:web:0000000000000000000000"
+};
+
+var FIREBASE_PATH = 'preferencias'; // não altere: caminho usado dentro do banco de dados
+
+var firebaseAtivo = false;
+var db = null;
+var suprimirEcoProximaEscrita = false;
+
+function configuracaoFirebaseValida() {
+	return !!(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.databaseURL &&
+		FIREBASE_CONFIG.apiKey.indexOf('SUA_API_KEY_AQUI') === -1 &&
+		FIREBASE_CONFIG.databaseURL.indexOf('SEU_PROJETO') === -1);
+}
+
+function setSyncBadge(modo) {
+	var $badge = $('#syncBadge');
+	$badge.removeClass('sync-live sync-local sync-error');
+	if (modo === 'live') {
+		$badge.addClass('sync-live').text('Sincronizado com todos os usuários');
+		$('#avisoLocal').addClass('hidden');
+	} else if (modo === 'error') {
+		$badge.addClass('sync-error').text('Falha na sincronização — modo local');
+		$('#avisoLocal').removeClass('hidden');
+	} else {
+		$badge.addClass('sync-local').text('Modo local (não sincronizado)');
+		$('#avisoLocal').removeClass('hidden');
+	}
+}
+
+function iniciarSincronizacao() {
+	if (!configuracaoFirebaseValida() || typeof firebase === 'undefined') {
+		firebaseAtivo = false;
+		setSyncBadge('local');
+		loadStateLocal();
+		refreshAllSelects();
+		recalcAssignments();
+		return;
+	}
+
+	try {
+		firebase.initializeApp(FIREBASE_CONFIG);
+		db = firebase.database();
+	} catch (e) {
+		console.warn('Não foi possível iniciar o Firebase; operando em modo local.', e);
+		firebaseAtivo = false;
+		setSyncBadge('error');
+		loadStateLocal();
+		refreshAllSelects();
+		recalcAssignments();
+		return;
+	}
+
+	db.ref(FIREBASE_PATH).on('value', function(snapshot) {
+		firebaseAtivo = true;
+		setSyncBadge('live');
+
+		var dados = snapshot.val() || {};
+		pessoas.forEach(function(p, idx) {
+			var salvo = dados['p' + idx];
+			var novosPrefs = new Array(NUM_PREF).fill('');
+			if (salvo && Object.prototype.toString.call(salvo) === '[object Array]') {
+				for (var i = 0; i < NUM_PREF; i++) {
+					var v = salvo[i];
+					if (v && LOTACAO_BY_ID[v]) novosPrefs[i] = v;
+				}
+			}
+			p.prefs = novosPrefs;
+		});
+
+		refreshAllSelects();
+		recalcAssignments();
+	}, function(erro) {
+		console.error('Erro de sincronização com o Firebase:', erro);
+		firebaseAtivo = false;
+		setSyncBadge('error');
+		loadStateLocal();
+		refreshAllSelects();
+		recalcAssignments();
+	});
+}
+
+function escreverPreferenciaPessoa(idx) {
+	if (firebaseAtivo && db) {
+		db.ref(FIREBASE_PATH + '/p' + idx).set(pessoas[idx].prefs);
+	} else {
+		saveStateLocal();
+	}
+}
+
+function limparTudoRemoto() {
+	if (firebaseAtivo && db) {
+		db.ref(FIREBASE_PATH).set(null);
+	} else {
+		saveStateLocal();
+	}
+}
+
+// ======================= ESTADO / PERSISTÊNCIA LOCAL (RESERVA) =======================
+//
+// Usada apenas quando a sincronização via Firebase não está configurada ou falhou —
+// nesse caso as seleções continuam sendo salvas no localStorage do navegador, como
+// reserva, para que a pessoa não perca o preenchimento ao recarregar a página.
 
 function initPessoas() {
 	pessoas = PESSOAS_BASE.map(function(p) {
@@ -496,7 +658,7 @@ function initPessoas() {
 	});
 }
 
-function loadState() {
+function loadStateLocal() {
 	var raw;
 	try {
 		raw = localStorage.getItem(STORAGE_KEY);
@@ -521,7 +683,7 @@ function loadState() {
 	});
 }
 
-function saveState() {
+function saveStateLocal() {
 	var obj = {};
 	pessoas.forEach(function(p) { obj[p.nome] = p.prefs; });
 	try {
@@ -668,12 +830,15 @@ function renderSummaryTables(assignment) {
 
 $(document).ready(function() {
 	initPessoas();
-	loadState();
-
 	renderVagasTable();
 	renderPeopleTable();
+
+	// Popula os selects vazios antes da sincronização terminar de carregar,
+	// para a tabela já aparecer completa enquanto conecta.
 	refreshAllSelects();
 	recalcAssignments();
+
+	iniciarSincronizacao();
 
 	$('#tblAssign tbody').on('change', 'select.pref-select', function() {
 		var idx = parseInt($(this).data('person'), 10);
@@ -681,17 +846,17 @@ $(document).ready(function() {
 		pessoas[idx].prefs[slot] = $(this).val();
 
 		refreshPersonSelects(idx);
-		saveState();
+		escreverPreferenciaPessoa(idx);
 		recalcAssignments();
 	});
 
 	$('#btnLimpar').on('click', function() {
-		var ok = window.confirm('Tem certeza que deseja limpar TODAS as seleções de preferência de TODOS os 46 auditores fiscais? Esta ação não pode ser desfeita.');
+		var ok = window.confirm('Tem certeza que deseja limpar TODAS as seleções de preferência de TODOS os 46 auditores fiscais? Esta ação afeta todas as pessoas conectadas e não pode ser desfeita.');
 		if (!ok) return;
 
 		pessoas.forEach(function(p) { p.prefs = new Array(NUM_PREF).fill(''); });
 		refreshAllSelects();
-		saveState();
+		limparTudoRemoto();
 		recalcAssignments();
 	});
 });

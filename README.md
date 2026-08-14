@@ -24,7 +24,7 @@ O projeto é uma ferramenta de simulação pessoal/coletiva, sem qualquer víncu
 3. Uma lotação já escolhida em um dos dropdowns de uma pessoa deixa automaticamente de aparecer como opção nos demais dropdowns dessa mesma pessoa.
 4. A última coluna da tabela ("Lotação designada") mostra, em tempo real, o resultado da simulação para cada auditor, recalculado a cada alteração feita por qualquer pessoa na tabela.
 5. Logo abaixo, 8 pequenas tabelas exibem, por lotação, a relação nominal de quem está atualmente designado para ela, também atualizadas automaticamente.
-6. Suas seleções são salvas automaticamente no navegador (`localStorage`) e permanecem preenchidas da próxima vez que a página for acessada no mesmo dispositivo/navegador. O botão "Limpar todas as seleções" apaga todas as preferências de todos os 46 auditores de uma só vez.
+6. As seleções são sincronizadas em tempo real, para todas as pessoas que acessarem o link, por meio do Firebase Realtime Database (ver seção [Sincronização entre todos os usuários](#sincronização-entre-todos-os-usuários) abaixo). Uma alteração feita por qualquer um dos 46 auditores aparece automaticamente na tela de todos os demais, sem precisar recarregar a página. O botão "Limpar todas as seleções (de todos os usuários)" apaga de uma vez as preferências de todos os 46 auditores, para todo mundo.
 
 ## Lógica de atribuição
 
@@ -62,15 +62,54 @@ Esse é o mesmo mecanismo usado, por exemplo, em processos de escolha de vaga po
 
 ### Persistência
 
-As preferências de cada um dos 46 auditores são salvas no `localStorage` do navegador (chave `lotacaosefazrn_v1`), associadas ao nome de cada pessoa. Como o armazenamento é local ao navegador/dispositivo, seleções feitas em um computador não aparecem automaticamente em outro; para compartilhar o resultado de uma simulação com outras pessoas, é necessário informá-lo manualmente (print, mensagem etc.).
+As preferências de cada um dos 46 auditores ficam guardadas em um banco de dados na nuvem (Firebase Realtime Database), associadas à posição de cada pessoa na lista (não ao texto do nome), e são recarregadas automaticamente sempre que a página é aberta — em qualquer computador, por qualquer uma das 46 pessoas. Enquanto o Firebase não estiver configurado (ver seção abaixo), o simulador funciona em **modo local**: cada seleção fica salva apenas no `localStorage` do navegador de quem preencheu, sem aparecer para as demais pessoas, e um aviso amarelo é exibido no topo da tabela avisando disso.
+
+## Sincronização entre todos os usuários
+
+Por padrão, uma página hospedada no GitHub Pages é **estática**: não existe servidor nem banco de dados próprios, então, sem nenhuma configuração adicional, cada navegador só enxergaria as próprias seleções. Para que os 46 auditores vejam e editem os **mesmos** dados, o `index.html` se conecta a um banco de dados gratuito do Google — o [Firebase Realtime Database](https://firebase.google.com/docs/database) — diretamente do navegador, via JavaScript, sem precisar de nenhum servidor mantido por vocês.
+
+Essa configuração precisa ser feita uma única vez, por qualquer pessoa com uma conta Google:
+
+1. Acesse [console.firebase.google.com](https://console.firebase.google.com/) e faça login com uma conta Google.
+2. Clique em **"Adicionar projeto"**, dê um nome (por exemplo, `lotacaosefazrn`) e conclua a criação. Não é necessário ativar o Google Analytics.
+3. Dentro do projeto, no menu lateral, acesse **Build → Realtime Database** e clique em **"Criar banco de dados"**.
+4. Escolha uma localização (qualquer uma serve) e, quando perguntado sobre as regras de segurança, escolha iniciar em **modo de teste** — ou já configure manualmente as regras do passo 5.
+5. Na aba **"Regras"** do Realtime Database, substitua o conteúdo pelo seguinte e publique:
+   ```json
+   {
+     "rules": {
+       ".read": true,
+       ".write": true
+     }
+   }
+   ```
+   ⚠️ **Nota de segurança:** essas regras deixam o banco de dados com leitura e escrita **públicas** (sem exigir login), pois o simulador não usa autenticação — qualquer pessoa com o link do projeto poderia, em tese, alterar os dados diretamente pela API do Firebase. Isso é adequado para este uso informal e interno entre os 46 auditores, mas o banco **não deve ser reaproveitado** para guardar informações sensíveis.
+6. Vá em **⚙️ Configurações do projeto → Geral**, role até **"Seus apps"** e clique no ícone `</>` (Web) para registrar um novo app. Dê um apelido qualquer (ex.: `lotacaosefazrn-web`) e clique em **"Registrar app"** (não é necessário adicionar o Firebase Hosting).
+7. Copie o objeto `firebaseConfig` exibido na tela — algo como:
+   ```js
+   const firebaseConfig = {
+     apiKey: "AIza...",
+     authDomain: "lotacaosefazrn.firebaseapp.com",
+     databaseURL: "https://lotacaosefazrn-default-rtdb.firebaseio.com",
+     projectId: "lotacaosefazrn",
+     storageBucket: "lotacaosefazrn.appspot.com",
+     messagingSenderId: "123456789012",
+     appId: "1:123456789012:web:abcdef1234567890abcdef"
+   };
+   ```
+8. Abra o arquivo `index.html` deste repositório e localize o bloco `var FIREBASE_CONFIG = { ... }`, logo no início do `<script>` final da página. Substitua os valores de exemplo pelos valores copiados no passo 7.
+9. Salve, faça o commit e o push do `index.html` atualizado para o repositório — o GitHub Pages publica a nova versão automaticamente em alguns minutos.
+
+A partir daí, a barra de status acima da tabela passa a exibir **"Sincronizado com todos os usuários"** (em vez de "Modo local"), e qualquer seleção feita por alguém aparece, em tempo real, para todas as outras pessoas com a página aberta.
 
 ## Tecnologias utilizadas
 
 - **HTML5** — estrutura da página, em arquivo único (`index.html`).
 - **CSS3** puro — sem framework; variáveis CSS (`:root`) para cores/tema, tabela com colunas fixas (`position: sticky`) para facilitar a rolagem horizontal, grid para o layout responsivo das tabelas de resumo, e fontes do Google Fonts (*Space Grotesk*, *Inter*, *JetBrains Mono* para números e códigos de ordem).
-- **JavaScript (ES5/ES6)** — toda a lógica de geração dos dropdowns, validação de escolhas duplicadas, algoritmo de atribuição e persistência em `localStorage`.
+- **JavaScript (ES5/ES6)** — toda a lógica de geração dos dropdowns, validação de escolhas duplicadas e algoritmo de atribuição.
 - **jQuery 3.7** (via CDN) — manipulação do DOM e eventos (`change`) que disparam o recálculo automático.
-- **GitHub Pages** — hospedagem estática, sem backend, sem build step, sem dependências instaladas: o repositório é publicado como está.
+- **Firebase Realtime Database** (via CDN, SDK compat) — sincronização em tempo real das preferências entre todos os usuários que acessam a página; com `localStorage` como reserva local enquanto o Firebase não estiver configurado.
+- **GitHub Pages** — hospedagem estática, sem backend próprio, sem build step, sem dependências instaladas: o repositório é publicado como está.
 
 Não há framework de front-end (React, Vue etc.), bundler ou etapa de compilação — o projeto é intencionalmente simples para poder ser mantido e publicado direto pela interface do GitHub, do mesmo modo que os projetos irmãos [`remunerasefazrn`](https://github.com/BacalhauNaBrisa/remunerasefazrn) e [`cebraspe`](https://github.com/BacalhauNaBrisa/cebraspe).
 
