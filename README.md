@@ -2,7 +2,7 @@
 
 <p align="center">
   Simulador não-oficial da escolha de lotações dos novos<br/>
-  <strong>Auditores Fiscais de Receitas Estaduais (AFRE)</strong> da Secretaria de Estado da Tributação do Rio Grande do Norte (Sefaz/RN).
+  <strong>Auditores Fiscais de Receitas Estaduais (AFRE)</strong> da Secretaria da Fazenda do Rio Grande do Norte (Sefaz/RN).
 </p>
 
 <p align="center">
@@ -123,4 +123,4 @@ lotacaosefazrn/
 
 ## Aviso legal
 
-Simulador independente e não-oficial, sem qualquer vínculo com a Sefaz/RN. O quantitativo de vagas, a ordem de convocação e a lógica de atribuição aqui reproduzidos têm caráter meramente estimativo e ilustrativo, servindo apenas como ferramenta de apoio à organização informal das escolhas entre os próprios auditores fiscais. Consulte sempre a Secretaria de Estado da Tributação do RN para fins oficiais antes de tomar qualquer decisão com base nos resultados desta página.
+Simulador independente e não-oficial, sem qualquer vínculo com a Sefaz/RN. O quantitativo de vagas, a ordem de convocação e a lógica de atribuição aqui reproduzidos têm caráter meramente estimativo e ilustrativo, servindo apenas como ferramenta de apoio à organização informal das escolhas entre os próprios auditores fiscais. Consulte sempre a Secretaria da Fazenda do RN para fins oficiais antes de tomar qualquer decisão com base nos resultados desta página.
