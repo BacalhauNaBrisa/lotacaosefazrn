@@ -37,6 +37,7 @@
 }
 *{box-sizing:border-box;}
 html{scroll-behavior:smooth;}
+.hidden{display:none !important;}
 body{
 	margin:0;
 	background:var(--cream-50);
@@ -308,15 +309,87 @@ select.pref-select:focus{
 	border-color:var(--navy-700);
 	box-shadow:0 0 0 3px rgba(39,75,125,.15);
 }
-td.col-designada{
-	min-width:180px;
+.designada-cell{
 	font-weight:700;
 	color:var(--navy-950);
 }
-td.col-designada.empty{
+.designada-cell.empty{
 	color:var(--ink-400);
 	font-weight:500;
 	font-style:italic;
+}
+td.col-designada{
+	min-width:180px;
+}
+
+/* ---------- cartões de auditor (telas estreitas) ---------- */
+#personCards{display:none;}
+.person-card{
+	background:#fff;
+	border:1px solid var(--line);
+	border-radius:var(--radius);
+	box-shadow:var(--shadow);
+	padding:14px 16px 16px;
+	margin-bottom:14px;
+}
+.person-card-head{
+	display:flex;
+	align-items:center;
+	gap:10px;
+	margin-bottom:12px;
+	padding-bottom:10px;
+	border-bottom:1px solid var(--cream-100);
+}
+.person-card-head .person-name{
+	font-weight:700;
+	font-size:14px;
+	color:var(--navy-950);
+	line-height:1.3;
+}
+.person-card-grid{
+	display:grid;
+	grid-template-columns:1fr;
+	gap:10px 12px;
+}
+@media (min-width:481px) and (max-width:900px){
+	.person-card-grid{grid-template-columns:1fr 1fr;}
+}
+.pref-field label{
+	display:block;
+	font-size:10.5px;
+	text-transform:uppercase;
+	letter-spacing:.04em;
+	color:var(--ink-400);
+	font-weight:600;
+	margin-bottom:4px;
+}
+.pref-field select.pref-select{
+	width:100%;
+	font-size:14px;
+	padding:10px 11px;
+}
+.person-card-result{
+	margin-top:14px;
+	padding:10px 12px;
+	background:var(--cream-100);
+	border-radius:7px;
+	display:flex;
+	flex-direction:column;
+	gap:2px;
+}
+.person-card-result .result-label{
+	font-size:10.5px;
+	text-transform:uppercase;
+	letter-spacing:.04em;
+	color:var(--ink-400);
+	font-weight:600;
+}
+.person-card-result .designada-cell{
+	font-size:14.5px;
+}
+@media (max-width:900px){
+	.assign-wrap{display:none;}
+	#personCards{display:block;}
 }
 
 /* ---------- summary cards ---------- */
@@ -421,25 +494,28 @@ footer a{color:var(--ink-600);}
 			<button type="button" class="btn-clear" id="btnLimpar">Limpar todas as seleções (de todos os usuários)</button>
 		</div>
 
-		<div class="assign-wrap">
-			<table class="assign" id="tblAssign">
-				<thead>
-					<tr>
-						<th class="col-ordem">Ordem</th>
-						<th class="col-nome">Nome</th>
-						<th>1ª pref.</th>
-						<th>2ª pref.</th>
-						<th>3ª pref.</th>
-						<th>4ª pref.</th>
-						<th>5ª pref.</th>
-						<th>6ª pref.</th>
-						<th>7ª pref.</th>
-						<th>8ª pref.</th>
-						<th>Lotação designada</th>
-					</tr>
-				</thead>
-				<tbody></tbody>
-			</table>
+		<div id="assignContainer">
+			<div class="assign-wrap">
+				<table class="assign" id="tblAssign">
+					<thead>
+						<tr>
+							<th class="col-ordem">Ordem</th>
+							<th class="col-nome">Nome</th>
+							<th>1ª pref.</th>
+							<th>2ª pref.</th>
+							<th>3ª pref.</th>
+							<th>4ª pref.</th>
+							<th>5ª pref.</th>
+							<th>6ª pref.</th>
+							<th>7ª pref.</th>
+							<th>8ª pref.</th>
+							<th>Lotação designada</th>
+						</tr>
+					</thead>
+					<tbody></tbody>
+				</table>
+			</div>
+			<div id="personCards"></div>
 		</div>
 		<div class="citation">A ordem de convocação confere prioridade de escolha: quanto menor o número de convocação, maior a preferência do candidato na disputa pelas vagas de cada lotação.</div>
 	</div>
@@ -711,8 +787,12 @@ function renderPeopleTable() {
 		return a.nome.localeCompare(b.nome, 'pt-BR');
 	});
 	var $tbody = $('#tblAssign tbody').empty();
+	var $cards = $('#personCards').empty();
+
 	display.forEach(function(p) {
 		var idx = pessoas.indexOf(p);
+
+		// ---- linha da tabela (telas largas) ----
 		var $row = $('<tr>').attr('data-idx', idx);
 		$row.append('<td class="col-ordem"><span class="badge-ordem">' + pad2(p.ordem) + '</span></td>');
 		$row.append('<td class="col-nome">' + p.nome + '</td>');
@@ -720,8 +800,33 @@ function renderPeopleTable() {
 			var $sel = $('<select>').addClass('pref-select').attr('data-person', idx).attr('data-slot', s);
 			$row.append($('<td>').append($sel));
 		}
-		$row.append('<td class="col-designada" data-idx="' + idx + '">—</td>');
+		$row.append('<td class="col-designada designada-cell empty" data-idx="' + idx + '">—</td>');
 		$tbody.append($row);
+
+		// ---- cartão (telas estreitas) ----
+		var $card = $('<div class="person-card">');
+		$card.append(
+			'<div class="person-card-head">' +
+				'<span class="badge-ordem">' + pad2(p.ordem) + '</span>' +
+				'<span class="person-name">' + p.nome + '</span>' +
+			'</div>'
+		);
+		var $grid = $('<div class="person-card-grid">');
+		for (var s2 = 0; s2 < NUM_PREF; s2++) {
+			var $field = $('<div class="pref-field">');
+			$field.append('<label>' + (s2 + 1) + 'ª preferência</label>');
+			var $sel2 = $('<select>').addClass('pref-select').attr('data-person', idx).attr('data-slot', s2);
+			$field.append($sel2);
+			$grid.append($field);
+		}
+		$card.append($grid);
+		$card.append(
+			'<div class="person-card-result">' +
+				'<span class="result-label">Lotação designada</span>' +
+				'<span class="designada-cell empty" data-idx="' + idx + '">—</span>' +
+			'</div>'
+		);
+		$cards.append($card);
 	});
 }
 
@@ -732,7 +837,6 @@ function pad2(n) {
 
 function refreshPersonSelects(idx) {
 	var p = pessoas[idx];
-	var $row = $('#tblAssign tbody tr[data-idx="' + idx + '"]');
 	for (var s = 0; s < NUM_PREF; s++) {
 		var usedElsewhere = [];
 		for (var k = 0; k < NUM_PREF; k++) {
@@ -752,7 +856,9 @@ function refreshPersonSelects(idx) {
 			html += '<option value="' + l.id + '"' + (l.id === current ? ' selected' : '') + '>' + l.nome + '</option>';
 		});
 
-		var $sel = $row.find('select.pref-select[data-slot="' + s + '"]');
+		// data-person/data-slot identificam o select tanto na tabela quanto no
+		// cartão mobile, então este seletor atualiza as duas versões de uma vez.
+		var $sel = $('select.pref-select[data-person="' + idx + '"][data-slot="' + s + '"]');
 		$sel.html(html);
 		$sel.val(current || '');
 	}
@@ -789,7 +895,7 @@ function recalcAssignments() {
 	var totalAtribuidas = 0;
 	pessoas.forEach(function(p, idx) {
 		var lot = assignment[p.nome];
-		var $cell = $('#tblAssign tbody tr[data-idx="' + idx + '"] td.col-designada');
+		var $cell = $('.designada-cell[data-idx="' + idx + '"]');
 		if (lot) {
 			$cell.removeClass('empty').text(LOTACAO_BY_ID[lot].nome);
 			totalAtribuidas++;
@@ -841,7 +947,7 @@ $(document).ready(function() {
 
 	iniciarSincronizacao();
 
-	$('#tblAssign tbody').on('change', 'select.pref-select', function() {
+	$('#assignContainer').on('change', 'select.pref-select', function() {
 		var idx = parseInt($(this).data('person'), 10);
 		var slot = parseInt($(this).data('slot'), 10);
 		pessoas[idx].prefs[slot] = $(this).val();
