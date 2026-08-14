@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Simulador de Lotação — Sefaz/RN</title>
+<meta name="description" content="Simulador não-oficial da escolha de lotações dos 46 novos Auditores Fiscais de Receitas Estaduais da Sefaz/RN"/>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+<style>
+:root{
+	--navy-950:#0c1f36;
+	--navy-900:#132c4a;
+	--navy-800:#1b3a63;
+	--navy-700:#274b7d;
+	--green-600:#2e7d4f;
+	--green-700:#256640;
+	--gold-500:#f0b93b;
+	--gold-600:#d99e20;
+	--cream-50:#faf8f3;
+	--cream-100:#f2eee2;
+	--ink-900:#16202c;
+	--ink-600:#4b5768;
+	--ink-400:#79879a;
+	--line:#dcd6c6;
+	--ok-bg:#e9f3ec;
+	--danger:#b3432b;
+	--radius:10px;
+	--shadow: 0 1px 2px rgba(15,30,50,.06), 0 8px 24px -12px rgba(15,30,50,.18);
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+	margin:0;
+	background:var(--cream-50);
+	color:var(--ink-900);
+	font-family:'Inter',system-ui,sans-serif;
+	font-size:15px;
+	line-height:1.5;
+}
+.num{font-family:'JetBrains Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums;}
+h1,h2,h3{font-family:'Space Grotesk',system-ui,sans-serif; color:var(--navy-950); margin:0 0 .4em;}
+a{color:var(--navy-700);}
+
+/* ---------- header ---------- */
+.topbar{
+	background: linear-gradient(180deg,var(--navy-950),var(--navy-900) 75%);
+	color:#f4f1e6;
+	border-bottom:4px solid var(--gold-500);
+}
+.topbar-inner{
+	max-width:1320px;
+	margin:0 auto;
+	padding:26px 24px 22px;
+	display:flex;
+	align-items:center;
+	gap:22px;
+}
+.topbar img{
+	height:96px;
+	width:auto;
+	filter:drop-shadow(0 6px 14px rgba(0,0,0,.35));
+	flex-shrink:0;
+}
+.topbar .eyebrow{
+	text-transform:uppercase;
+	letter-spacing:.14em;
+	font-size:11.5px;
+	font-weight:600;
+	color:var(--gold-500);
+	margin-bottom:6px;
+}
+.topbar h1{
+	color:#fbf9f2;
+	font-size:26px;
+	margin:0 0 4px;
+	line-height:1.2;
+}
+.topbar p{
+	margin:0;
+	color:#c7cfdb;
+	font-size:13.5px;
+	max-width:72ch;
+}
+
+/* ---------- layout ---------- */
+.wrap{
+	max-width:1320px;
+	margin:0 auto;
+	padding:28px 24px 80px;
+}
+
+.card{
+	background:#fff;
+	border:1px solid var(--line);
+	border-radius:var(--radius);
+	box-shadow:var(--shadow);
+	padding:22px 24px;
+	margin-bottom:20px;
+}
+.card > h2{
+	font-size:16.5px;
+	display:flex;
+	align-items:baseline;
+	gap:8px;
+	border-bottom:1px solid var(--cream-100);
+	padding-bottom:12px;
+	margin-bottom:18px;
+}
+.card > h2 .tag{
+	font-family:'JetBrains Mono',monospace;
+	font-size:11px;
+	font-weight:600;
+	color:var(--green-700);
+	background:var(--ok-bg);
+	border-radius:5px;
+	padding:2px 7px;
+	letter-spacing:.03em;
+}
+.card > p.lead{
+	font-size:13.5px;
+	color:var(--ink-600);
+	margin:-6px 0 16px;
+	line-height:1.55;
+}
+
+/* reference tables */
+table.ref{
+	width:100%;
+	border-collapse:collapse;
+	font-size:13px;
+	margin:10px 0 4px;
+}
+table.ref th, table.ref td{
+	padding:8px 10px;
+	border-bottom:1px solid var(--cream-100);
+	text-align:left;
+}
+table.ref th{
+	font-size:11px;
+	text-transform:uppercase;
+	letter-spacing:.06em;
+	color:var(--ink-400);
+	font-weight:600;
+}
+table.ref td.num, table.ref th.num{text-align:right;}
+table.ref tr:last-child td{border-bottom:none;}
+.citation{
+	font-size:12px;
+	color:var(--ink-600);
+	background:var(--cream-100);
+	border-left:3px solid var(--gold-500);
+	padding:9px 12px;
+	border-radius:4px;
+	margin-top:10px;
+	line-height:1.5;
+}
+
+/* ---------- status line ---------- */
+.status-line{
+	display:flex;
+	gap:22px;
+	flex-wrap:wrap;
+	margin-bottom:16px;
+	font-size:13px;
+	color:var(--ink-600);
+}
+.status-line b{color:var(--navy-950); font-family:'JetBrains Mono',monospace;}
+
+/* ---------- toolbar ---------- */
+.toolbar{
+	display:flex;
+	justify-content:flex-end;
+	margin-bottom:14px;
+}
+.btn-clear{
+	font:inherit;
+	font-size:12.5px;
+	font-weight:600;
+	color:var(--danger);
+	background:#fff;
+	border:1.5px solid var(--danger);
+	border-radius:7px;
+	padding:8px 14px;
+	cursor:pointer;
+	transition:background .15s;
+}
+.btn-clear:hover{background:#fbeae5;}
+
+/* ---------- assignment table ---------- */
+.assign-wrap{
+	overflow:auto;
+	border:1px solid var(--line);
+	border-radius:var(--radius);
+	max-height:78vh;
+}
+table.assign{
+	border-collapse:separate;
+	border-spacing:0;
+	width:100%;
+	min-width:1560px;
+	font-size:12.5px;
+}
+table.assign thead th{
+	position:sticky;
+	top:0;
+	z-index:3;
+	background:var(--cream-100);
+	color:var(--ink-600);
+	font-size:10.5px;
+	text-transform:uppercase;
+	letter-spacing:.05em;
+	font-weight:700;
+	padding:10px 8px;
+	text-align:left;
+	border-bottom:2px solid var(--line);
+	white-space:nowrap;
+}
+table.assign td{
+	padding:6px 8px;
+	border-bottom:1px solid var(--cream-100);
+	vertical-align:middle;
+	background:#fff;
+}
+table.assign tbody tr:hover td{background:var(--cream-100);}
+table.assign td.col-ordem, table.assign th.col-ordem{
+	position:sticky;
+	left:0;
+	z-index:2;
+	width:46px;
+	min-width:46px;
+	text-align:center;
+}
+table.assign th.col-ordem{z-index:4; background:var(--cream-100);}
+table.assign td.col-nome, table.assign th.col-nome{
+	position:sticky;
+	left:46px;
+	z-index:2;
+	min-width:230px;
+	box-shadow:2px 0 5px -3px rgba(15,30,50,.35);
+	font-weight:600;
+}
+table.assign th.col-nome{z-index:4; background:var(--cream-100);}
+table.assign tbody tr:hover td.col-ordem, table.assign tbody tr:hover td.col-nome{background:var(--cream-100);}
+.badge-ordem{
+	font-family:'JetBrains Mono',monospace;
+	font-size:11px;
+	font-weight:600;
+	color:var(--navy-700);
+	background:var(--cream-100);
+	border-radius:5px;
+	padding:2px 6px;
+}
+select.pref-select{
+	width:150px;
+	font:inherit;
+	font-size:12px;
+	padding:7px 8px;
+	border:1.5px solid var(--line);
+	border-radius:6px;
+	background:#fff;
+	color:var(--ink-900);
+	transition:border-color .15s;
+}
+select.pref-select:focus{
+	outline:none;
+	border-color:var(--navy-700);
+	box-shadow:0 0 0 3px rgba(39,75,125,.15);
+}
+td.col-designada{
+	min-width:180px;
+	font-weight:700;
+	color:var(--navy-950);
+}
+td.col-designada.empty{
+	color:var(--ink-400);
+	font-weight:500;
+	font-style:italic;
+}
+
+/* ---------- summary cards ---------- */
+.summary-grid{
+	display:grid;
+	grid-template-columns:1fr 1fr;
+	gap:16px;
+}
+@media (max-width:760px){.summary-grid{grid-template-columns:1fr;}}
+.summary-card{
+	background:#fff;
+	border:1px solid var(--line);
+	border-radius:var(--radius);
+	box-shadow:var(--shadow);
+	padding:16px 18px;
+}
+.summary-card h3{
+	font-size:13.5px;
+	margin:0;
+	color:var(--navy-950);
+	display:flex;
+	justify-content:space-between;
+	align-items:baseline;
+	gap:8px;
+	border-bottom:1px solid var(--cream-100);
+	padding-bottom:10px;
+}
+.summary-card .count{
+	font-family:'JetBrains Mono',monospace;
+	font-size:11.5px;
+	font-weight:600;
+	color:var(--ink-600);
+	background:var(--cream-100);
+	border-radius:5px;
+	padding:2px 7px;
+	white-space:nowrap;
+}
+.summary-card ol{
+	margin:10px 0 0;
+	padding-left:20px;
+	font-size:12.5px;
+	color:var(--ink-900);
+	line-height:1.85;
+}
+.summary-card .ordem-mini{color:var(--ink-400); font-size:10.5px;}
+.summary-card .empty-note{
+	font-size:12px;
+	color:var(--ink-400);
+	font-style:italic;
+	margin-top:10px;
+}
+
+footer{
+	max-width:1320px;
+	margin:0 auto;
+	padding:0 24px 40px;
+	color:var(--ink-400);
+	font-size:12px;
+	line-height:1.6;
+}
+footer a{color:var(--ink-600);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<img src="https://raw.githubusercontent.com/BacalhauNaBrisa/remunerasefazrn/main/afrelefante.png" alt="Mascote AFRE Sefaz/RN"/>
+		<div>
+			<div class="eyebrow">Simulador não-oficial</div>
+			<h1>Simulador de Lotação — Sefaz/RN</h1>
+			<p>Simule, em ordem de convocação, a escolha de lotação dos 46 novos Auditores Fiscais de Receitas Estaduais (AFRE) entre as unidades da Secretaria de Estado da Tributação do Rio Grande do Norte, conforme as preferências informadas por cada servidor.</p>
+		</div>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<div class="card">
+		<h2>Vagas por lotação <span class="tag">referência</span></h2>
+		<p class="lead">Quantitativo de vagas disponibilizado para os 46 novos AFRE, distribuído entre as 8 unidades da Sefaz/RN.</p>
+		<table class="ref" id="tblVagas">
+			<thead><tr><th>Lotação</th><th class="num">Vagas</th></tr></thead>
+			<tbody></tbody>
+			<tfoot><tr><td style="font-weight:700;">Total</td><td class="num" style="font-weight:700;" id="totalVagas"></td></tr></tfoot>
+		</table>
+	</div>
+
+	<div class="card">
+		<h2>Ordem de convocação e preferências <span class="tag">obrigatório</span></h2>
+		<p class="lead">Para cada um dos 46 auditores fiscais (listados abaixo em ordem alfabética), selecione as 8 lotações em ordem de preferência, da esquerda (1ª preferência) para a direita (8ª preferência). Uma lotação já escolhida em um dropdown deixa de ficar disponível nos demais dropdowns da mesma pessoa. A designação final de cada auditor é recalculada automaticamente, respeitando a ordem de convocação: primeiro se atende, integralmente, a preferência de quem foi convocado em 1º lugar; depois a de quem foi convocado em 2º lugar; e assim sucessivamente, até a última vaga. Suas seleções ficam salvas neste navegador e são recarregadas automaticamente da próxima vez que você acessar a página.</p>
+
+		<div class="status-line">
+			<span>Lotações já atribuídas: <b id="statusAtribuidas">0</b> / <b id="statusTotal">46</b></span>
+			<span>Aguardando lotação: <b id="statusPendentes">46</b></span>
+		</div>
+
+		<div class="toolbar">
+			<button type="button" class="btn-clear" id="btnLimpar">Limpar todas as seleções</button>
+		</div>
+
+		<div class="assign-wrap">
+			<table class="assign" id="tblAssign">
+				<thead>
+					<tr>
+						<th class="col-ordem">Ordem</th>
+						<th class="col-nome">Nome</th>
+						<th>1ª pref.</th>
+						<th>2ª pref.</th>
+						<th>3ª pref.</th>
+						<th>4ª pref.</th>
+						<th>5ª pref.</th>
+						<th>6ª pref.</th>
+						<th>7ª pref.</th>
+						<th>8ª pref.</th>
+						<th>Lotação designada</th>
+					</tr>
+				</thead>
+				<tbody></tbody>
+			</table>
+		</div>
+		<div class="citation">A ordem de convocação confere prioridade de escolha: quanto menor o número de convocação, maior a preferência do candidato na disputa pelas vagas de cada lotação.</div>
+	</div>
+
+	<div class="card">
+		<h2>Lotações preenchidas <span class="tag">dinâmico</span></h2>
+		<p class="lead">Relação, por lotação, dos auditores fiscais atualmente designados, atualizada automaticamente a cada alteração de preferência.</p>
+		<div class="summary-grid" id="summaryGrid"></div>
+	</div>
+
+</div>
+
+<footer>
+	<p>Simulador independente e não-oficial, sem qualquer vínculo com a Sefaz/RN. O quantitativo de vagas e a lógica de atribuição reproduzidos aqui têm caráter meramente estimativo e ilustrativo. Consulte sempre a Secretaria de Estado da Tributação do RN para fins oficiais antes de tomar qualquer decisão com base nos resultados desta página. Projeto irmão: <a href="https://bacalhaunabrisa.github.io/remunerasefazrn/" target="_blank" rel="noopener">remunerasefazrn</a>.</p>
+</footer>
+
+<script>
+// ======================= DADOS =======================
+
+var LOTACOES = [
+	{ id: 'sumat_volante',    nome: 'SUMAT (Volante)',       vagas: 15 },
+	{ id: 'sufise',           nome: 'SUFISE',                vagas: 10 },
+	{ id: 'sucadi',           nome: 'SUCADI',                vagas: 5  },
+	{ id: 'cotin',            nome: 'COTIN',                 vagas: 5  },
+	{ id: 'suscomex',         nome: 'SUSCOMEX',              vagas: 5  },
+	{ id: 'sumat_nif',        nome: 'SUMAT (NIF Caraú)',     vagas: 4  },
+	{ id: 'corregedoria',     nome: 'Corregedoria',          vagas: 1  },
+	{ id: 'educacao_fiscal',  nome: 'Educação Fiscal',       vagas: 1  }
+];
+
+var LOTACAO_BY_ID = {};
+LOTACOES.forEach(function(l){ LOTACAO_BY_ID[l.id] = l; });
+
+var NUM_PREF = 8;
+var STORAGE_KEY = 'lotacaosefazrn_v1';
+
+var PESSOAS_BASE = [
+	{ nome: 'ALEXANDRE PALHARES LEITE',                 ordem: 38 },
+	{ nome: 'ALINNE CRISTIANE ANICETO MEDEIROS',         ordem: 2  },
+	{ nome: 'AMANDA BATISTA SILVA SOUSA',                ordem: 26 },
+	{ nome: 'ANDRE FEIJO QUINTELA FILHO',                ordem: 3  },
+	{ nome: 'ANTONIO THALES ROCHA CIDADE',               ordem: 22 },
+	{ nome: 'ARTHUR MINDELLO ZANDONA',                   ordem: 27 },
+	{ nome: 'CARLOS ANDRE DA SILVA BATISTA DE SOUZA',    ordem: 43 },
+	{ nome: 'CAROLINE CARVALHO FONTÃO',                  ordem: 15 },
+	{ nome: 'DANIEL LIMA OLIVEIRA',                      ordem: 44 },
+	{ nome: 'DANIELLE CRISTINA MACHADO',                 ordem: 29 },
+	{ nome: 'ESTEVAM VIEIRA DE FREITAS JUNIOR',          ordem: 47 },
+	{ nome: 'FABIANO KENNEDY LIMA FERNANDES',            ordem: 48 },
+	{ nome: 'FELLIPE DOUGLAS DOS SANTOS LIMA',           ordem: 18 },
+	{ nome: 'FRANCISCO EMERSON BRAGA MENDES JUNIOR',     ordem: 21 },
+	{ nome: 'GIRLIAN ANTONIO DOS SANTOS',                ordem: 32 },
+	{ nome: 'GUSTAVO LINS FREIRE',                       ordem: 37 },
+	{ nome: 'JEAN SILVA ZANONE',                         ordem: 35 },
+	{ nome: 'JONATAS MENEZES COSTA',                     ordem: 31 },
+	{ nome: 'JOÃO ANTÔNIO ANICÁCIO MOURA',               ordem: 19 },
+	{ nome: 'JOSE FRANCISCO GOMES',                      ordem: 20 },
+	{ nome: 'JOSE RODOLFO BEZERRA MESQUITA ARAUJO',      ordem: 36 },
+	{ nome: 'JULIO CESAR DE PAIVA FILHO',                ordem: 28 },
+	{ nome: 'LARISSA DAIANA GOMES',                      ordem: 25 },
+	{ nome: 'LEANDRO MONTEIRO DO NASCIMENTO',            ordem: 30 },
+	{ nome: 'LEONARDO ARAUJO CRONEMBERGER',              ordem: 41 },
+	{ nome: 'LEWI MATHIAS SOARES MACEDO',                ordem: 23 },
+	{ nome: 'LUCAS SIMOES BORGES',                       ordem: 17 },
+	{ nome: 'LUCAS VALENÇA DE AVILA NASCIMENTO',         ordem: 14 },
+	{ nome: 'LUCAS VIDIGAL BRAGA',                       ordem: 34 },
+	{ nome: 'MARCELO SENA DA SILVA',                     ordem: 39 },
+	{ nome: 'MARCO ANTONIO DE BRITTO ABLA',              ordem: 5  },
+	{ nome: 'MARCOS GABRIEL FERREIRA TOMAZ',             ordem: 4  },
+	{ nome: 'MARILA SOARES MELO',                        ordem: 7  },
+	{ nome: 'MATEUS CARVALHO DE MEDEIROS',               ordem: 9  },
+	{ nome: 'MATHEUS HENRIQUE WELTER',                   ordem: 12 },
+	{ nome: 'MATHEUS MATOS PASSOS DE LIMA',              ordem: 10 },
+	{ nome: 'MOZART HENDEL GOMES DE ALMEIDA',            ordem: 6  },
+	{ nome: 'RAFAEL YURI ANSELMO KERGES BUENO',          ordem: 24 },
+	{ nome: 'ROBERTO EVELIM PENHA BORGES',               ordem: 11 },
+	{ nome: 'ROMILSON BINAS DA SILVA',                   ordem: 33 },
+	{ nome: 'SILVIO JOSE VITOR FERREIRA',                ordem: 1  },
+	{ nome: 'TACIO MOURA DE SOUZA ALMEIDA',              ordem: 45 },
+	{ nome: 'TARCISIO DE MACEDO COELHO',                 ordem: 42 },
+	{ nome: 'THIAGO BASTOS DE MELO',                     ordem: 40 },
+	{ nome: 'THIAGO LIMA DE FREITAS NOBRE',              ordem: 16 },
+	{ nome: 'WALBER WILLAME BARBOSA DE MOURA',           ordem: 8  }
+];
+
+var pessoas = [];
+
+// ======================= ESTADO / PERSISTÊNCIA =======================
+
+function initPessoas() {
+	pessoas = PESSOAS_BASE.map(function(p) {
+		return { nome: p.nome, ordem: p.ordem, prefs: new Array(NUM_PREF).fill('') };
+	});
+}
+
+function loadState() {
+	var raw;
+	try {
+		raw = localStorage.getItem(STORAGE_KEY);
+	} catch (e) {
+		return;
+	}
+	if (!raw) return;
+	var saved;
+	try {
+		saved = JSON.parse(raw);
+	} catch (e) {
+		return;
+	}
+	pessoas.forEach(function(p) {
+		var savedPrefs = saved[p.nome];
+		if (savedPrefs && Object.prototype.toString.call(savedPrefs) === '[object Array]') {
+			for (var i = 0; i < NUM_PREF; i++) {
+				var v = savedPrefs[i];
+				if (v && LOTACAO_BY_ID[v]) p.prefs[i] = v;
+			}
+		}
+	});
+}
+
+function saveState() {
+	var obj = {};
+	pessoas.forEach(function(p) { obj[p.nome] = p.prefs; });
+	try {
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+	} catch (e) {
+		console.warn('Não foi possível salvar as seleções neste navegador.', e);
+	}
+}
+
+// ======================= RENDERIZAÇÃO =======================
+
+function renderVagasTable() {
+	var $tbody = $('#tblVagas tbody').empty();
+	var total = 0;
+	LOTACOES.forEach(function(l) {
+		total += l.vagas;
+		$tbody.append('<tr><td>' + l.nome + '</td><td class="num">' + l.vagas + '</td></tr>');
+	});
+	$('#totalVagas').text(total);
+}
+
+function renderPeopleTable() {
+	var display = pessoas.slice().sort(function(a, b) {
+		return a.nome.localeCompare(b.nome, 'pt-BR');
+	});
+	var $tbody = $('#tblAssign tbody').empty();
+	display.forEach(function(p) {
+		var idx = pessoas.indexOf(p);
+		var $row = $('<tr>').attr('data-idx', idx);
+		$row.append('<td class="col-ordem"><span class="badge-ordem">' + pad2(p.ordem) + '</span></td>');
+		$row.append('<td class="col-nome">' + p.nome + '</td>');
+		for (var s = 0; s < NUM_PREF; s++) {
+			var $sel = $('<select>').addClass('pref-select').attr('data-person', idx).attr('data-slot', s);
+			$row.append($('<td>').append($sel));
+		}
+		$row.append('<td class="col-designada" data-idx="' + idx + '">—</td>');
+		$tbody.append($row);
+	});
+}
+
+function pad2(n) {
+	n = String(n);
+	return n.length < 2 ? '0' + n : n;
+}
+
+function refreshPersonSelects(idx) {
+	var p = pessoas[idx];
+	var $row = $('#tblAssign tbody tr[data-idx="' + idx + '"]');
+	for (var s = 0; s < NUM_PREF; s++) {
+		var usedElsewhere = [];
+		for (var k = 0; k < NUM_PREF; k++) {
+			if (k !== s && p.prefs[k]) usedElsewhere.push(p.prefs[k]);
+		}
+		var opcoes = LOTACOES.filter(function(l) { return usedElsewhere.indexOf(l.id) === -1; });
+
+		var current = p.prefs[s];
+		if (current && usedElsewhere.indexOf(current) !== -1) {
+			// segurança: se por algum motivo o valor atual ficou inválido, limpa
+			current = '';
+			p.prefs[s] = '';
+		}
+
+		var html = '<option value="">' + (s + 1) + 'ª preferência</option>';
+		opcoes.forEach(function(l) {
+			html += '<option value="' + l.id + '"' + (l.id === current ? ' selected' : '') + '>' + l.nome + '</option>';
+		});
+
+		var $sel = $row.find('select.pref-select[data-slot="' + s + '"]');
+		$sel.html(html);
+		$sel.val(current || '');
+	}
+}
+
+function refreshAllSelects() {
+	pessoas.forEach(function(p, idx) { refreshPersonSelects(idx); });
+}
+
+// ======================= LÓGICA DE ATRIBUIÇÃO =======================
+
+function recalcAssignments() {
+	var restante = {};
+	LOTACOES.forEach(function(l) { restante[l.id] = l.vagas; });
+
+	var assignment = {}; // nome -> id da lotação ou null
+
+	var ordenados = pessoas.slice().sort(function(a, b) { return a.ordem - b.ordem; });
+
+	ordenados.forEach(function(p) {
+		var escolhido = null;
+		for (var s = 0; s < NUM_PREF; s++) {
+			var lot = p.prefs[s];
+			if (!lot) continue;
+			if (restante[lot] > 0) {
+				escolhido = lot;
+				restante[lot]--;
+				break;
+			}
+		}
+		assignment[p.nome] = escolhido;
+	});
+
+	var totalAtribuidas = 0;
+	pessoas.forEach(function(p, idx) {
+		var lot = assignment[p.nome];
+		var $cell = $('#tblAssign tbody tr[data-idx="' + idx + '"] td.col-designada');
+		if (lot) {
+			$cell.removeClass('empty').text(LOTACAO_BY_ID[lot].nome);
+			totalAtribuidas++;
+		} else {
+			$cell.addClass('empty').text('—');
+		}
+	});
+
+	$('#statusAtribuidas').text(totalAtribuidas);
+	$('#statusTotal').text(pessoas.length);
+	$('#statusPendentes').text(pessoas.length - totalAtribuidas);
+
+	renderSummaryTables(assignment);
+}
+
+function renderSummaryTables(assignment) {
+	var $grid = $('#summaryGrid').empty();
+	LOTACOES.forEach(function(l) {
+		var ocupados = pessoas.filter(function(p) { return assignment[p.nome] === l.id; });
+		ocupados.sort(function(a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); });
+
+		var $card = $('<div class="summary-card">');
+		$card.append('<h3>' + l.nome + ' <span class="count">' + ocupados.length + ' / ' + l.vagas + '</span></h3>');
+
+		if (ocupados.length) {
+			var $ol = $('<ol>');
+			ocupados.forEach(function(p) {
+				$ol.append('<li>' + p.nome + ' <span class="ordem-mini num">(ordem ' + pad2(p.ordem) + ')</span></li>');
+			});
+			$card.append($ol);
+		} else {
+			$card.append('<div class="empty-note">Nenhuma pessoa designada até o momento.</div>');
+		}
+		$grid.append($card);
+	});
+}
+
+// ======================= EVENTOS =======================
+
+$(document).ready(function() {
+	initPessoas();
+	loadState();
+
+	renderVagasTable();
+	renderPeopleTable();
+	refreshAllSelects();
+	recalcAssignments();
+
+	$('#tblAssign tbody').on('change', 'select.pref-select', function() {
+		var idx = parseInt($(this).data('person'), 10);
+		var slot = parseInt($(this).data('slot'), 10);
+		pessoas[idx].prefs[slot] = $(this).val();
+
+		refreshPersonSelects(idx);
+		saveState();
+		recalcAssignments();
+	});
+
+	$('#btnLimpar').on('click', function() {
+		var ok = window.confirm('Tem certeza que deseja limpar TODAS as seleções de preferência de TODOS os 46 auditores fiscais? Esta ação não pode ser desfeita.');
+		if (!ok) return;
+
+		pessoas.forEach(function(p) { p.prefs = new Array(NUM_PREF).fill(''); });
+		refreshAllSelects();
+		saveState();
+		recalcAssignments();
+	});
+});
+</script>
+</body>
+</html>
