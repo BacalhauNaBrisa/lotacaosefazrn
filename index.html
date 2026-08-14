@@ -322,34 +322,86 @@ td.col-designada{
 	min-width:180px;
 }
 
-/* ---------- cartões de auditor (telas estreitas) ---------- */
+/* ---------- cartões de auditor (telas estreitas) — modo acordeão ---------- */
 #personCards{display:none;}
 .person-card{
 	background:#fff;
 	border:1px solid var(--line);
 	border-radius:var(--radius);
 	box-shadow:var(--shadow);
-	padding:14px 16px 16px;
-	margin-bottom:14px;
+	margin-bottom:10px;
+	overflow:hidden;
 }
 .person-card-head{
 	display:flex;
 	align-items:center;
 	gap:10px;
-	margin-bottom:12px;
-	padding-bottom:10px;
-	border-bottom:1px solid var(--cream-100);
+	width:100%;
+	padding:13px 14px;
+	background:none;
+	border:none;
+	margin:0;
+	font:inherit;
+	color:inherit;
+	text-align:left;
+	cursor:pointer;
+	-webkit-tap-highlight-color:transparent;
+}
+.person-card-head:focus-visible{
+	outline:2px solid var(--navy-700);
+	outline-offset:-2px;
 }
 .person-card-head .person-name{
+	flex:1 1 auto;
+	min-width:0;
 	font-weight:700;
-	font-size:14px;
+	font-size:13.5px;
 	color:var(--navy-950);
 	line-height:1.3;
+	overflow:hidden;
+	text-overflow:ellipsis;
+	white-space:nowrap;
+}
+.person-card-status{
+	flex-shrink:0;
+	max-width:34%;
+	font-size:11px;
+	font-weight:600;
+	color:var(--green-700);
+	overflow:hidden;
+	text-overflow:ellipsis;
+	white-space:nowrap;
+}
+.person-card-status.empty{
+	color:var(--ink-400);
+	font-style:normal;
+}
+.chevron{
+	flex-shrink:0;
+	width:20px;
+	height:20px;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	color:var(--ink-400);
+	transition:transform .18s ease;
+}
+.person-card.expanded .chevron{transform:rotate(180deg);}
+.person-card-body{
+	max-height:0;
+	overflow:hidden;
+	transition:max-height .22s ease;
+}
+.person-card.expanded .person-card-body{
+	max-height:1200px;
 }
 .person-card-grid{
 	display:grid;
 	grid-template-columns:1fr;
 	gap:10px 12px;
+	padding:2px 14px 14px;
+	border-top:1px solid var(--cream-100);
+	padding-top:12px;
 }
 @media (min-width:481px) and (max-width:900px){
 	.person-card-grid{grid-template-columns:1fr 1fr;}
@@ -367,25 +419,6 @@ td.col-designada{
 	width:100%;
 	font-size:14px;
 	padding:10px 11px;
-}
-.person-card-result{
-	margin-top:14px;
-	padding:10px 12px;
-	background:var(--cream-100);
-	border-radius:7px;
-	display:flex;
-	flex-direction:column;
-	gap:2px;
-}
-.person-card-result .result-label{
-	font-size:10.5px;
-	text-transform:uppercase;
-	letter-spacing:.04em;
-	color:var(--ink-400);
-	font-weight:600;
-}
-.person-card-result .designada-cell{
-	font-size:14.5px;
 }
 @media (max-width:900px){
 	.assign-wrap{display:none;}
@@ -803,14 +836,18 @@ function renderPeopleTable() {
 		$row.append('<td class="col-designada designada-cell empty" data-idx="' + idx + '">—</td>');
 		$tbody.append($row);
 
-		// ---- cartão (telas estreitas) ----
-		var $card = $('<div class="person-card">');
-		$card.append(
-			'<div class="person-card-head">' +
-				'<span class="badge-ordem">' + pad2(p.ordem) + '</span>' +
-				'<span class="person-name">' + p.nome + '</span>' +
-			'</div>'
-		);
+		// ---- cartão em acordeão (telas estreitas): recolhido por padrão,
+		// mostrando só ordem/nome (+ resumo da lotação); expande ao tocar. ----
+		var $card = $('<div class="person-card">').attr('data-idx', idx);
+		var $head = $('<button type="button" class="person-card-head" aria-expanded="false">')
+			.attr('aria-controls', 'cardBody' + idx);
+		$head.append('<span class="badge-ordem">' + pad2(p.ordem) + '</span>');
+		$head.append('<span class="person-name">' + p.nome + '</span>');
+		$head.append('<span class="person-card-status designada-cell empty" data-idx="' + idx + '">—</span>');
+		$head.append('<span class="chevron" aria-hidden="true">▾</span>');
+		$card.append($head);
+
+		var $body = $('<div class="person-card-body">').attr('id', 'cardBody' + idx);
 		var $grid = $('<div class="person-card-grid">');
 		for (var s2 = 0; s2 < NUM_PREF; s2++) {
 			var $field = $('<div class="pref-field">');
@@ -819,13 +856,8 @@ function renderPeopleTable() {
 			$field.append($sel2);
 			$grid.append($field);
 		}
-		$card.append($grid);
-		$card.append(
-			'<div class="person-card-result">' +
-				'<span class="result-label">Lotação designada</span>' +
-				'<span class="designada-cell empty" data-idx="' + idx + '">—</span>' +
-			'</div>'
-		);
+		$body.append($grid);
+		$card.append($body);
 		$cards.append($card);
 	});
 }
@@ -955,6 +987,15 @@ $(document).ready(function() {
 		refreshPersonSelects(idx);
 		escreverPreferenciaPessoa(idx);
 		recalcAssignments();
+	});
+
+	$('#personCards').on('click', '.person-card-head', function() {
+		var $btn = $(this);
+		var $card = $btn.closest('.person-card');
+		var expandir = !$card.hasClass('expanded');
+
+		$card.toggleClass('expanded', expandir);
+		$btn.attr('aria-expanded', expandir ? 'true' : 'false');
 	});
 
 	$('#btnLimpar').on('click', function() {
