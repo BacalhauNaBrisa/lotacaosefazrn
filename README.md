@@ -24,7 +24,7 @@ O projeto é uma ferramenta de simulação pessoal/coletiva, sem qualquer víncu
 3. Uma lotação já escolhida em um dos dropdowns de uma pessoa deixa automaticamente de aparecer como opção nos demais dropdowns dessa mesma pessoa.
 4. A última coluna da tabela ("Lotação designada") mostra, em tempo real, o resultado da simulação para cada auditor, recalculado a cada alteração feita por qualquer pessoa na tabela.
 5. Logo abaixo, 8 pequenas tabelas exibem, por lotação, a relação nominal de quem está atualmente designado para ela, também atualizadas automaticamente.
-6. As seleções são sincronizadas em tempo real, para todas as pessoas que acessarem o link, por meio do Firebase Realtime Database (ver seção [Sincronização entre todos os usuários](#sincronização-entre-todos-os-usuários) abaixo). Uma alteração feita por qualquer um dos 46 auditores aparece automaticamente na tela de todos os demais, sem precisar recarregar a página. O botão "Limpar todas as seleções (de todos os usuários)" apaga de uma vez as preferências de todos os 46 auditores, para todo mundo.
+6. As seleções são sincronizadas em tempo real, para todas as pessoas que acessarem o link, por meio do Firebase Realtime Database (ver seção [Sincronização entre todos os usuários](#sincronização-entre-todos-os-usuários) abaixo). Uma alteração feita por qualquer um dos 46 auditores aparece automaticamente na tela de todos os demais, sem precisar recarregar a página.
 
 ## Lógica de atribuição
 

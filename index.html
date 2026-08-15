@@ -209,26 +209,6 @@ table.ref tr:last-child td{border-bottom:none;}
 }
 .sync-warning a{color:var(--gold-600); font-weight:600;}
 
-/* ---------- toolbar ---------- */
-.toolbar{
-	display:flex;
-	justify-content:flex-end;
-	margin-bottom:14px;
-}
-.btn-clear{
-	font:inherit;
-	font-size:12.5px;
-	font-weight:600;
-	color:var(--danger);
-	background:#fff;
-	border:1.5px solid var(--danger);
-	border-radius:7px;
-	padding:8px 14px;
-	cursor:pointer;
-	transition:background .15s;
-}
-.btn-clear:hover{background:#fbeae5;}
-
 /* ---------- assignment table ---------- */
 .assign-wrap{
 	overflow:auto;
@@ -523,10 +503,6 @@ footer a{color:var(--ink-600);}
 			<span>Aguardando lotação: <b id="statusPendentes">46</b></span>
 		</div>
 
-		<div class="toolbar">
-			<button type="button" class="btn-clear" id="btnLimpar">Limpar todas as seleções (de todos os usuários)</button>
-		</div>
-
 		<div id="assignContainer">
 			<div class="assign-wrap">
 				<table class="assign" id="tblAssign">
@@ -743,14 +719,6 @@ function iniciarSincronizacao() {
 function escreverPreferenciaPessoa(idx) {
 	if (firebaseAtivo && db) {
 		db.ref(FIREBASE_PATH + '/p' + idx).set(pessoas[idx].prefs);
-	} else {
-		saveStateLocal();
-	}
-}
-
-function limparTudoRemoto() {
-	if (firebaseAtivo && db) {
-		db.ref(FIREBASE_PATH).set(null);
 	} else {
 		saveStateLocal();
 	}
@@ -996,16 +964,6 @@ $(document).ready(function() {
 
 		$card.toggleClass('expanded', expandir);
 		$btn.attr('aria-expanded', expandir ? 'true' : 'false');
-	});
-
-	$('#btnLimpar').on('click', function() {
-		var ok = window.confirm('Tem certeza que deseja limpar TODAS as seleções de preferência de TODOS os 46 auditores fiscais? Esta ação afeta todas as pessoas conectadas e não pode ser desfeita.');
-		if (!ok) return;
-
-		pessoas.forEach(function(p) { p.prefs = new Array(NUM_PREF).fill(''); });
-		refreshAllSelects();
-		limparTudoRemoto();
-		recalcAssignments();
 	});
 });
 </script>
