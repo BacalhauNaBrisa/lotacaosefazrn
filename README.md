@@ -13,7 +13,7 @@
 
 ## Sobre o projeto
 
-Este repositório contém uma única página HTML autocontida (`index.html`) que simula, em ordem de convocação, a distribuição das lotações entre os 46 novos AFRE da Sefaz/RN, com base nas preferências individuais de cada auditor fiscal. Não há servidor, backend ou build: basta abrir o arquivo no navegador (ou acessá-lo via GitHub Pages).
+Este repositório contém uma única página HTML autocontida (`index.html`) que simula, em ordem de convocação, a distribuição das lotações entre os 47 novos AFRE da Sefaz/RN, com base nas preferências individuais de cada auditor fiscal. Não há servidor, backend ou build: basta abrir o arquivo no navegador (ou acessá-lo via GitHub Pages).
 
 O projeto é uma ferramenta de simulação pessoal/coletiva, sem qualquer vínculo institucional com a Sefaz/RN. O quantitativo de vagas por lotação foi inserido manualmente com base nas informações disponibilizadas para a convocação e pode ficar desatualizado caso os quantitativos oficiais mudem.
 
@@ -24,7 +24,7 @@ O projeto é uma ferramenta de simulação pessoal/coletiva, sem qualquer víncu
 3. Uma lotação já escolhida em um dos dropdowns de uma pessoa deixa automaticamente de aparecer como opção nos demais dropdowns dessa mesma pessoa.
 4. A última coluna da tabela ("Lotação designada") mostra, em tempo real, o resultado da simulação para cada auditor, recalculado a cada alteração feita por qualquer pessoa na tabela.
 5. Logo abaixo, 8 pequenas tabelas exibem, por lotação, a relação nominal de quem está atualmente designado para ela, também atualizadas automaticamente.
-6. As seleções são sincronizadas em tempo real, para todas as pessoas que acessarem o link, por meio do Firebase Realtime Database (ver seção [Sincronização entre todos os usuários](#sincronização-entre-todos-os-usuários) abaixo). Uma alteração feita por qualquer um dos 46 auditores aparece automaticamente na tela de todos os demais, sem precisar recarregar a página.
+6. As seleções são sincronizadas em tempo real, para todas as pessoas que acessarem o link, por meio do Firebase Realtime Database (ver seção [Sincronização entre todos os usuários](#sincronização-entre-todos-os-usuários) abaixo). Uma alteração feita por qualquer um dos 47 auditores aparece automaticamente na tela de todos os demais, sem precisar recarregar a página.
 
 ## Lógica de atribuição
 
@@ -40,17 +40,17 @@ Todo o cálculo roda **no navegador do usuário**, em JavaScript puro (nenhum da
 | COTIN | 5 |
 | SUSCOMEX | 5 |
 | SUMAT (NIF Caraú) | 4 |
-| Corregedoria | 1 |
-| Educação Fiscal | 1 |
-| **Total** | **46** |
+| COFIS | 2 |
+| CAT | 1 |
+| **Total** | **47** |
 
 ### 2. Ordem de convocação
 
-Cada um dos 46 auditores fiscais possui um número de ordem de convocação (posição no concurso público), que define sua prioridade de escolha: quem foi convocado primeiro tem preferência sobre os demais na disputa por qualquer lotação; quem foi convocado em segundo lugar tem preferência sobre todos, exceto o primeiro; e assim sucessivamente. A listagem nominal exibida na página segue ordem alfabética apenas para facilitar a localização de cada nome — a ordem de convocação de cada pessoa é exibida em uma coluna própria e é ela quem efetivamente comanda o algoritmo de atribuição.
+Cada um dos 47 auditores fiscais possui um número de ordem de convocação (posição no concurso público), que define sua prioridade de escolha: quem foi convocado primeiro tem preferência sobre os demais na disputa por qualquer lotação; quem foi convocado em segundo lugar tem preferência sobre todos, exceto o primeiro; e assim sucessivamente. A listagem nominal exibida na página segue ordem alfabética apenas para facilitar a localização de cada nome — a ordem de convocação de cada pessoa é exibida em uma coluna própria e é ela quem efetivamente comanda o algoritmo de atribuição.
 
 ### 3. Algoritmo de atribuição (mecanismo sequencial por prioridade)
 
-A cada alteração em qualquer dropdown de qualquer pessoa, a designação de **todos** os 46 auditores é recalculada do zero, na seguinte ordem:
+A cada alteração em qualquer dropdown de qualquer pessoa, a designação de **todos** os 47 auditores é recalculada do zero, na seguinte ordem:
 
 1. Zera-se o quantitativo de vagas restantes de cada uma das 8 lotações (igual ao total da tabela de vagas).
 2. Percorre-se a lista de auditores **em ordem crescente de convocação** (do nº 1 ao último).
@@ -62,11 +62,11 @@ Esse é o mesmo mecanismo usado, por exemplo, em processos de escolha de vaga po
 
 ### Persistência
 
-As preferências de cada um dos 46 auditores ficam guardadas em um banco de dados na nuvem (Firebase Realtime Database), associadas à posição de cada pessoa na lista (não ao texto do nome), e são recarregadas automaticamente sempre que a página é aberta — em qualquer computador, por qualquer uma das 46 pessoas. Enquanto o Firebase não estiver configurado (ver seção abaixo), o simulador funciona em **modo local**: cada seleção fica salva apenas no `localStorage` do navegador de quem preencheu, sem aparecer para as demais pessoas, e um aviso amarelo é exibido no topo da tabela avisando disso.
+As preferências de cada um dos 47 auditores ficam guardadas em um banco de dados na nuvem (Firebase Realtime Database), associadas à posição de cada pessoa na lista (não ao texto do nome), e são recarregadas automaticamente sempre que a página é aberta — em qualquer computador, por qualquer uma das 47 pessoas. Enquanto o Firebase não estiver configurado (ver seção abaixo), o simulador funciona em **modo local**: cada seleção fica salva apenas no `localStorage` do navegador de quem preencheu, sem aparecer para as demais pessoas, e um aviso amarelo é exibido no topo da tabela avisando disso.
 
 ## Sincronização entre todos os usuários
 
-Por padrão, uma página hospedada no GitHub Pages é **estática**: não existe servidor nem banco de dados próprios, então, sem nenhuma configuração adicional, cada navegador só enxergaria as próprias seleções. Para que os 46 auditores vejam e editem os **mesmos** dados, o `index.html` se conecta a um banco de dados gratuito do Google — o [Firebase Realtime Database](https://firebase.google.com/docs/database) — diretamente do navegador, via JavaScript, sem precisar de nenhum servidor mantido por vocês.
+Por padrão, uma página hospedada no GitHub Pages é **estática**: não existe servidor nem banco de dados próprios, então, sem nenhuma configuração adicional, cada navegador só enxergaria as próprias seleções. Para que os 47 auditores vejam e editem os **mesmos** dados, o `index.html` se conecta a um banco de dados gratuito do Google — o [Firebase Realtime Database](https://firebase.google.com/docs/database) — diretamente do navegador, via JavaScript, sem precisar de nenhum servidor mantido por vocês.
 
 Essa configuração precisa ser feita uma única vez, por qualquer pessoa com uma conta Google:
 
@@ -83,7 +83,7 @@ Essa configuração precisa ser feita uma única vez, por qualquer pessoa com um
      }
    }
    ```
-   ⚠️ **Nota de segurança:** essas regras deixam o banco de dados com leitura e escrita **públicas** (sem exigir login), pois o simulador não usa autenticação — qualquer pessoa com o link do projeto poderia, em tese, alterar os dados diretamente pela API do Firebase. Isso é adequado para este uso informal e interno entre os 46 auditores, mas o banco **não deve ser reaproveitado** para guardar informações sensíveis.
+   ⚠️ **Nota de segurança:** essas regras deixam o banco de dados com leitura e escrita **públicas** (sem exigir login), pois o simulador não usa autenticação — qualquer pessoa com o link do projeto poderia, em tese, alterar os dados diretamente pela API do Firebase. Isso é adequado para este uso informal e interno entre os 47 auditores, mas o banco **não deve ser reaproveitado** para guardar informações sensíveis.
 6. Vá em **⚙️ Configurações do projeto → Geral**, role até **"Seus apps"** e clique no ícone `</>` (Web) para registrar um novo app. Dê um apelido qualquer (ex.: `lotacaosefazrn-web`) e clique em **"Registrar app"** (não é necessário adicionar o Firebase Hosting).
 7. Copie o objeto `firebaseConfig` exibido na tela — algo como:
    ```js

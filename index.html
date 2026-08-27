@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Simulador de Lotação — Sefaz/RN</title>
-<meta name="description" content="Simulador não-oficial da escolha de lotações dos 46 novos Auditores Fiscais de Receitas Estaduais da Sefaz/RN"/>
+<meta name="description" content="Simulador não-oficial da escolha de lotações dos 47 novos Auditores Fiscais de Receitas Estaduais da Sefaz/RN"/>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -474,7 +474,7 @@ footer a{color:var(--ink-600);}
 		<div>
 			<div class="eyebrow">Simulador não-oficial</div>
 			<h1>Simulador de Lotação — Sefaz/RN</h1>
-			<p>Simule, em ordem de convocação, a escolha de lotação dos 46 novos Auditores Fiscais de Receitas Estaduais (AFRE) entre as unidades da Secretaria da Fazenda do Rio Grande do Norte, conforme as preferências informadas por cada servidor.</p>
+			<p>Simule, em ordem de convocação, a escolha de lotação dos 47 novos Auditores Fiscais de Receitas Estaduais (AFRE) entre as unidades da Secretaria da Fazenda do Rio Grande do Norte, conforme as preferências informadas por cada servidor.</p>
 		</div>
 	</div>
 </div>
@@ -483,7 +483,7 @@ footer a{color:var(--ink-600);}
 
 	<div class="card">
 		<h2>Vagas por lotação <span class="tag">referência</span></h2>
-		<p class="lead">Quantitativo de vagas disponibilizado para os 46 novos AFRE, distribuído entre as 8 unidades da Sefaz/RN.</p>
+		<p class="lead">Quantitativo de vagas disponibilizado para os 47 novos AFRE, distribuído entre as 8 unidades da Sefaz/RN.</p>
 		<table class="ref" id="tblVagas">
 			<thead><tr><th>Lotação</th><th class="num">Vagas</th></tr></thead>
 			<tbody></tbody>
@@ -493,14 +493,14 @@ footer a{color:var(--ink-600);}
 
 	<div class="card">
 		<h2>Ordem de convocação e preferências <span class="tag">obrigatório</span></h2>
-		<p class="lead">Para cada um dos 46 auditores fiscais (listados abaixo em ordem alfabética), selecione as 8 lotações em ordem de preferência, da esquerda (1ª preferência) para a direita (8ª preferência). Uma lotação já escolhida em um dropdown deixa de ficar disponível nos demais dropdowns da mesma pessoa. A designação final de cada auditor é recalculada automaticamente, respeitando a ordem de convocação: primeiro se atende, integralmente, a preferência de quem foi convocado em 1º lugar; depois a de quem foi convocado em 2º lugar; e assim sucessivamente, até a última vaga. As seleções são sincronizadas em tempo real entre todas as pessoas que acessarem esta página: uma alteração feita por qualquer um dos 46 auditores aparece instantaneamente para todos os demais, sem precisar recarregar.</p>
+		<p class="lead">Para cada um dos 47 auditores fiscais (listados abaixo em ordem alfabética), selecione as 8 lotações em ordem de preferência, da esquerda (1ª preferência) para a direita (8ª preferência). Uma lotação já escolhida em um dropdown deixa de ficar disponível nos demais dropdowns da mesma pessoa. A designação final de cada auditor é recalculada automaticamente, respeitando a ordem de convocação: primeiro se atende, integralmente, a preferência de quem foi convocado em 1º lugar; depois a de quem foi convocado em 2º lugar; e assim sucessivamente, até a última vaga. As seleções são sincronizadas em tempo real entre todas as pessoas que acessarem esta página: uma alteração feita por qualquer um dos 47 auditores aparece instantaneamente para todos os demais, sem precisar recarregar.</p>
 
 		<div id="avisoLocal" class="sync-warning hidden">⚠️ A sincronização em tempo real com o Firebase não está configurada (ou não foi possível conectar). Suas seleções estão sendo salvas apenas neste navegador, e não serão vistas pelas outras 45 pessoas. Veja o <code>README.md</code> do repositório para configurar a sincronização entre todos os usuários.</div>
 
 		<div class="status-line">
 			<span id="syncBadge" class="sync-badge sync-local">Conectando…</span>
-			<span>Lotações já atribuídas: <b id="statusAtribuidas">0</b> / <b id="statusTotal">46</b></span>
-			<span>Aguardando lotação: <b id="statusPendentes">46</b></span>
+			<span>Lotações já atribuídas: <b id="statusAtribuidas">0</b> / <b id="statusTotal">47</b></span>
+			<span>Aguardando lotação: <b id="statusPendentes">47</b></span>
 		</div>
 
 		<div id="assignContainer">
@@ -551,8 +551,8 @@ var LOTACOES = [
 	{ id: 'cotin',            nome: 'COTIN',                 vagas: 5  },
 	{ id: 'suscomex',         nome: 'SUSCOMEX',              vagas: 5  },
 	{ id: 'sumat_nif',        nome: 'SUMAT (NIF Caraú)',     vagas: 4  },
-	{ id: 'corregedoria',     nome: 'Corregedoria',          vagas: 1  },
-	{ id: 'educacao_fiscal',  nome: 'Educação Fiscal',       vagas: 1  }
+	{ id: 'cofis',            nome: 'COFIS',                 vagas: 2  },
+	{ id: 'cat',              nome: 'CAT',                   vagas: 1  }
 ];
 
 var LOTACAO_BY_ID = {};
@@ -607,14 +607,15 @@ var PESSOAS_BASE = [
 	{ nome: 'TARCISIO DE MACEDO COELHO',                 ordem: 42 },
 	{ nome: 'THIAGO BASTOS DE MELO',                     ordem: 40 },
 	{ nome: 'THIAGO LIMA DE FREITAS NOBRE',              ordem: 16 },
-	{ nome: 'WALBER WILLAME BARBOSA DE MOURA',           ordem: 8  }
+	{ nome: 'WALBER WILLAME BARBOSA DE MOURA',           ordem: 8  },
+	{ nome: 'JORGE WASHINGTON OLIVEIRA DE MORAIS',       ordem: 50 }
 ];
 
 var pessoas = [];
 
 // ======================= FIREBASE (SINCRONIZAÇÃO ENTRE TODOS OS USUÁRIOS) =======================
 //
-// Para que as seleções feitas por qualquer uma das 46 pessoas apareçam para todas as
+// Para que as seleções feitas por qualquer uma das 47 pessoas apareçam para todas as
 // outras (e não apenas no navegador de quem preencheu), este simulador usa o Firebase
 // Realtime Database, um banco de dados gratuito do Google que sincroniza os dados em
 // tempo real entre todos os navegadores conectados a este mesmo projeto.
