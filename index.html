@@ -448,6 +448,20 @@ td.col-designada{
 	line-height:1.85;
 }
 .summary-card .ordem-mini{color:var(--ink-400); font-size:10.5px;}
+.perfil-tag{
+	display:inline-block;
+	font-size:9.5px;
+	font-weight:700;
+	letter-spacing:.04em;
+	text-transform:uppercase;
+	color:var(--gold-600);
+	background:#fdf2df;
+	border:1px solid #f0ddb0;
+	border-radius:4px;
+	padding:1px 6px;
+	margin-left:5px;
+	vertical-align:middle;
+}
 .summary-card .empty-note{
 	font-size:12px;
 	color:var(--ink-400);
@@ -557,6 +571,21 @@ var LOTACOES = [
 
 var LOTACAO_BY_ID = {};
 LOTACOES.forEach(function(l){ LOTACAO_BY_ID[l.id] = l; });
+
+// Atributo oculto PERFIL: confere, a um par específico auditor/lotação, prioridade
+// sobre os demais auditores concorrendo pela mesma lotação, mesmo com ordem de
+// convocação pior. Só é efetivamente "usado" (e exibido) quando, sem ele, o auditor
+// não conseguiria a vaga naturalmente. Não é exposto em nenhum outro lugar da página.
+var PERFIL_PAIRS = [
+	{ nome: 'DANIEL LIMA OLIVEIRA',              lotacaoId: 'cotin' },
+	{ nome: 'LUCAS VIDIGAL BRAGA',                lotacaoId: 'cotin' },
+	{ nome: 'MARCOS GABRIEL FERREIRA TOMAZ',      lotacaoId: 'cat'   }
+];
+var PERFIL_SET = {};
+PERFIL_PAIRS.forEach(function(pp) { PERFIL_SET[pp.nome + '|' + pp.lotacaoId] = true; });
+function temPerfil(nome, lotacaoId) {
+	return !!PERFIL_SET[nome + '|' + lotacaoId];
+}
 
 var NUM_PREF = 8;
 var STORAGE_KEY = 'lotacaosefazrn_v1';
@@ -871,31 +900,87 @@ function refreshAllSelects() {
 
 // ======================= LÓGICA DE ATRIBUIÇÃO =======================
 
-function recalcAssignments() {
-	var restante = {};
-	LOTACOES.forEach(function(l) { restante[l.id] = l.vagas; });
+// ======================= LÓGICA DE ATRIBUIÇÃO =======================
+//
+// Mecanismo de aceitação diferida (Gale-Shapley, com o auditor propondo): cada
+// auditor propõe, na ordem de suas preferências, à lotação desejada. Se houver
+// vaga livre, é aceito. Se a lotação já estiver cheia, compara-se sua prioridade
+// com a do ocupante de pior prioridade atualmente aceito: se o novo proponente
+// tiver prioridade melhor, ele entra no lugar, e quem foi removido volta a propor
+// a partir da preferência seguinte dele. A prioridade de cada auditor, dentro de
+// uma lotação específica, é definida por dois critérios (nesta ordem): 1º) se ele
+// possui o atributo PERFIL para aquela lotação (tem prioridade sobre quem não
+// possui); 2º) ordem de convocação (menor número = maior prioridade). Quando
+// nenhum dos dois auditores em disputa possui PERFIL para a lotação, o resultado
+// é idêntico ao de uma simples distribuição sequencial por ordem de convocação.
 
-	var assignment = {}; // nome -> id da lotação ou null
+function pontuacaoPrioridade(pessoa, lotacaoId, usarPerfil) {
+	var possuiPerfil = usarPerfil && temPerfil(pessoa.nome, lotacaoId);
+	// níveis de PERFIL dominam a comparação; a ordem de convocação (no máximo
+	// algumas dezenas) desempata dentro de cada nível.
+	return (possuiPerfil ? 0 : 1) * 100000 + pessoa.ordem;
+}
 
-	var ordenados = pessoas.slice().sort(function(a, b) { return a.ordem - b.ordem; });
+function calcularAtribuicao(usarPerfil) {
+	var capacidade = {};
+	var ocupantes = {}; // lotacaoId -> array de índices de pessoas aceitas tentativamente
+	LOTACOES.forEach(function(l) { capacidade[l.id] = l.vagas; ocupantes[l.id] = []; });
 
-	ordenados.forEach(function(p) {
-		var escolhido = null;
-		for (var s = 0; s < NUM_PREF; s++) {
-			var lot = p.prefs[s];
-			if (!lot) continue;
-			if (restante[lot] > 0) {
-				escolhido = lot;
-				restante[lot]--;
-				break;
-			}
+	var proximoSlot = pessoas.map(function() { return 0; });
+	var matched = pessoas.map(function() { return null; }); // idx -> lotacaoId ou null
+
+	var fila = pessoas.map(function(_, idx) { return idx; });
+	var cursor = 0;
+
+	while (cursor < fila.length) {
+		var idx = fila[cursor];
+		cursor++;
+
+		var pessoa = pessoas[idx];
+		var lot = null;
+		while (proximoSlot[idx] < NUM_PREF) {
+			var candidato = pessoa.prefs[proximoSlot[idx]];
+			proximoSlot[idx]++;
+			if (candidato) { lot = candidato; break; }
 		}
-		assignment[p.nome] = escolhido;
-	});
+		if (!lot) continue; // esgotou as preferências preenchidas: fica sem lotação
+
+		if (ocupantes[lot].length < capacidade[lot]) {
+			ocupantes[lot].push(idx);
+			matched[idx] = lot;
+			continue;
+		}
+
+		// lotação cheia: localiza o ocupante de pior prioridade
+		var piorPos = 0;
+		var piorScore = pontuacaoPrioridade(pessoas[ocupantes[lot][0]], lot, usarPerfil);
+		for (var i = 1; i < ocupantes[lot].length; i++) {
+			var scoreAtual = pontuacaoPrioridade(pessoas[ocupantes[lot][i]], lot, usarPerfil);
+			if (scoreAtual > piorScore) { piorScore = scoreAtual; piorPos = i; }
+		}
+
+		var scoreProponente = pontuacaoPrioridade(pessoa, lot, usarPerfil);
+		if (scoreProponente < piorScore) {
+			var piorIdx = ocupantes[lot][piorPos];
+			ocupantes[lot].splice(piorPos, 1, idx);
+			matched[idx] = lot;
+			matched[piorIdx] = null;
+			fila.push(piorIdx); // quem foi removido volta a propor à próxima preferência dele
+		} else {
+			fila.push(idx); // rejeitado nesta lotação: tenta a próxima preferência dele
+		}
+	}
+
+	return matched;
+}
+
+function recalcAssignments() {
+	var atribReal = calcularAtribuicao(true);
+	var atribBase = calcularAtribuicao(false);
 
 	var totalAtribuidas = 0;
 	pessoas.forEach(function(p, idx) {
-		var lot = assignment[p.nome];
+		var lot = atribReal[idx];
 		var $cell = $('.designada-cell[data-idx="' + idx + '"]');
 		if (lot) {
 			$cell.removeClass('empty').text(LOTACAO_BY_ID[lot].nome);
@@ -909,22 +994,30 @@ function recalcAssignments() {
 	$('#statusTotal').text(pessoas.length);
 	$('#statusPendentes').text(pessoas.length - totalAtribuidas);
 
-	renderSummaryTables(assignment);
+	renderSummaryTables(atribReal, atribBase);
 }
 
-function renderSummaryTables(assignment) {
+function renderSummaryTables(atribReal, atribBase) {
 	var $grid = $('#summaryGrid').empty();
 	LOTACOES.forEach(function(l) {
-		var ocupados = pessoas.filter(function(p) { return assignment[p.nome] === l.id; });
-		ocupados.sort(function(a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); });
+		var ocupados = [];
+		pessoas.forEach(function(p, idx) {
+			if (atribReal[idx] === l.id) ocupados.push({ pessoa: p, idx: idx });
+		});
+		ocupados.sort(function(a, b) { return a.pessoa.nome.localeCompare(b.pessoa.nome, 'pt-BR'); });
 
 		var $card = $('<div class="summary-card">');
 		$card.append('<h3>' + l.nome + ' <span class="count">' + ocupados.length + ' / ' + l.vagas + '</span></h3>');
 
 		if (ocupados.length) {
 			var $ol = $('<ol>');
-			ocupados.forEach(function(p) {
-				$ol.append('<li>' + p.nome + ' <span class="ordem-mini num">(ordem ' + pad2(p.ordem) + ')</span></li>');
+			ocupados.forEach(function(o) {
+				// o marcador só é exibido quando o PERFIL foi de fato necessário para
+				// esta pessoa conseguir esta lotação (ou seja, sem ele, o resultado
+				// natural por ordem de convocação não a colocaria aqui).
+				var perfilFoiNecessario = temPerfil(o.pessoa.nome, l.id) && atribBase[o.idx] !== l.id;
+				var tag = perfilFoiNecessario ? ' <span class="perfil-tag">PERFIL</span>' : '';
+				$ol.append('<li>' + o.pessoa.nome + ' <span class="ordem-mini num">(ordem ' + pad2(o.pessoa.ordem) + ')</span>' + tag + '</li>');
 			});
 			$card.append($ol);
 		} else {
