@@ -34,8 +34,8 @@ Todo o cálculo roda **no navegador do usuário**, em JavaScript puro (nenhum da
 
 | Lotação | Vagas |
 |---|---:|
-| SUMAT (Volante) | 15 |
-| SUFISE | 10 |
+| SUMAT (Volante) | 10 |
+| SUFISE | 15 |
 | SUCADI | 5 |
 | COTIN | 5 |
 | SUSCOMEX | 5 |
