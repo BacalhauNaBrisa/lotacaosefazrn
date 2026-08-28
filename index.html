@@ -153,6 +153,38 @@ table.ref th{
 }
 table.ref td.num, table.ref th.num{text-align:right;}
 table.ref tr:last-child td{border-bottom:none;}
+
+/* ---------- tabela de vagas colapsável ---------- */
+.ref-collapsible tr.vaga-row-head{cursor:pointer; user-select:none;}
+.ref-collapsible tr.vaga-row-head:hover td{background:var(--cream-100);}
+.ref-collapsible tr.vaga-row-head .chevron-inline{
+	display:inline-block;
+	width:14px;
+	color:var(--ink-400);
+	transition:transform .18s ease;
+}
+.ref-collapsible tr.vaga-row-head.expanded .chevron-inline{transform:rotate(180deg);}
+.ref-collapsible tr.vaga-row-body td{
+	padding:0 10px 12px 32px;
+	border-bottom:1px solid var(--cream-100);
+	background:var(--cream-50);
+}
+.vaga-candidatos ol{
+	margin:6px 0 0;
+	padding-left:18px;
+	font-size:12.5px;
+	line-height:1.85;
+	color:var(--ink-900);
+}
+.vaga-candidatos .empty-note{
+	font-size:12px;
+	color:var(--ink-400);
+	font-style:italic;
+	margin-top:6px;
+}
+.cand-lotado{color:var(--green-700); font-weight:700;}
+.cand-nao-lotado{color:var(--danger); font-weight:600;}
+
 .citation{
 	font-size:12px;
 	color:var(--ink-600);
@@ -497,8 +529,8 @@ footer a{color:var(--ink-600);}
 
 	<div class="card">
 		<h2>Vagas por lotação <span class="tag">referência</span></h2>
-		<p class="lead">Quantitativo de vagas disponibilizado para os 47 novos AFRE, distribuído entre as 8 unidades da Sefaz/RN.</p>
-		<table class="ref" id="tblVagas">
+		<p class="lead">Quantitativo de vagas disponibilizado para os 47 novos AFRE, distribuído entre as 8 unidades da Sefaz/RN. Toque em uma lotação para ver quem a escolheu como 1ª preferência.</p>
+		<table class="ref ref-collapsible" id="tblVagas">
 			<thead><tr><th>Lotação</th><th class="num">Vagas</th></tr></thead>
 			<tbody></tbody>
 			<tfoot><tr><td style="font-weight:700;">Total</td><td class="num" style="font-weight:700;" id="totalVagas"></td></tr></tfoot>
@@ -808,7 +840,19 @@ function renderVagasTable() {
 	var total = 0;
 	LOTACOES.forEach(function(l) {
 		total += l.vagas;
-		$tbody.append('<tr><td>' + l.nome + '</td><td class="num">' + l.vagas + '</td></tr>');
+
+		var $head = $('<tr class="vaga-row-head">').attr('data-lot', l.id);
+		$head.append('<td><span class="chevron-inline" aria-hidden="true">▾</span>' + l.nome + '</td>');
+		$head.append('<td class="num">' + l.vagas + '</td>');
+		$tbody.append($head);
+
+		var $body = $('<tr class="vaga-row-body hidden">').attr('data-lot', l.id);
+		$body.append(
+			$('<td colspan="2">').append(
+				$('<div class="vaga-candidatos">').attr('id', 'vagaCand-' + l.id)
+			)
+		);
+		$tbody.append($body);
 	});
 	$('#totalVagas').text(total);
 }
@@ -995,6 +1039,36 @@ function recalcAssignments() {
 	$('#statusPendentes').text(pessoas.length - totalAtribuidas);
 
 	renderSummaryTables(atribReal, atribBase);
+	updateVagaCandidatos(atribReal);
+}
+
+function updateVagaCandidatos(atribReal) {
+	LOTACOES.forEach(function(l) {
+		var candidatos = [];
+		pessoas.forEach(function(p, idx) {
+			if (p.prefs[0] === l.id) candidatos.push({ pessoa: p, idx: idx });
+		});
+		candidatos.sort(function(a, b) { return a.pessoa.ordem - b.pessoa.ordem; });
+
+		var $container = $('#vagaCand-' + l.id).empty();
+		if (!candidatos.length) {
+			$container.append('<div class="empty-note">Ninguém selecionou esta lotação como 1ª preferência até o momento.</div>');
+			return;
+		}
+
+		var $ol = $('<ol>');
+		candidatos.forEach(function(c) {
+			var lotado = atribReal[c.idx] === l.id;
+			var statusClass = lotado ? 'cand-lotado' : 'cand-nao-lotado';
+			var statusTexto = lotado ? 'LOTADO' : 'NÃO LOTADO';
+			$ol.append(
+				'<li>' + c.pessoa.nome +
+				' <span class="ordem-mini num">(ordem ' + pad2(c.pessoa.ordem) + ')</span> — ' +
+				'<span class="' + statusClass + '">' + statusTexto + '</span></li>'
+			);
+		});
+		$container.append($ol);
+	});
 }
 
 function renderSummaryTables(atribReal, atribBase) {
@@ -1017,7 +1091,15 @@ function renderSummaryTables(atribReal, atribBase) {
 				// natural por ordem de convocação não a colocaria aqui).
 				var perfilFoiNecessario = temPerfil(o.pessoa.nome, l.id) && atribBase[o.idx] !== l.id;
 				var tag = perfilFoiNecessario ? ' <span class="perfil-tag">PERFIL</span>' : '';
-				$ol.append('<li>' + o.pessoa.nome + ' <span class="ordem-mini num">(ordem ' + pad2(o.pessoa.ordem) + ')</span>' + tag + '</li>');
+
+				var slotIndex = o.pessoa.prefs.indexOf(l.id);
+				var prefLabel = slotIndex >= 0 ? (slotIndex + 1) + 'ª preferência' : '';
+
+				$ol.append(
+					'<li>' + o.pessoa.nome +
+					' <span class="ordem-mini num">(ordem ' + pad2(o.pessoa.ordem) + ')</span>' +
+					' - ' + prefLabel + tag + '</li>'
+				);
 			});
 			$card.append($ol);
 		} else {
@@ -1058,6 +1140,16 @@ $(document).ready(function() {
 
 		$card.toggleClass('expanded', expandir);
 		$btn.attr('aria-expanded', expandir ? 'true' : 'false');
+	});
+
+	$('#tblVagas tbody').on('click', '.vaga-row-head', function() {
+		var $head = $(this);
+		var lot = $head.data('lot');
+		var $body = $('#tblVagas tbody tr.vaga-row-body[data-lot="' + lot + '"]');
+		var vaiExpandir = $body.hasClass('hidden');
+
+		$body.toggleClass('hidden', !vaiExpandir);
+		$head.toggleClass('expanded', vaiExpandir);
 	});
 });
 </script>
