@@ -13,6 +13,7 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 
 <style>
 :root{
@@ -480,6 +481,29 @@ td.col-designada{
 	line-height:1.85;
 }
 .summary-card .ordem-mini{color:var(--ink-400); font-size:10.5px;}
+.export-bar{
+	display:flex;
+	justify-content:flex-end;
+	margin-bottom:16px;
+}
+.btn-export{
+	display:inline-flex;
+	align-items:center;
+	gap:8px;
+	font:inherit;
+	font-size:13px;
+	font-weight:700;
+	color:#fff;
+	background:var(--navy-900);
+	border:1.5px solid var(--navy-900);
+	border-radius:8px;
+	padding:10px 16px;
+	cursor:pointer;
+	transition:background .15s;
+}
+.btn-export:hover{background:var(--navy-800);}
+.btn-export:active{background:var(--navy-950);}
+.btn-export svg{flex-shrink:0;}
 .perfil-tag{
 	display:inline-block;
 	font-size:9.5px;
@@ -530,6 +554,12 @@ footer a{color:var(--ink-600);}
 	<div class="card">
 		<h2>Vagas por lotação <span class="tag">referência</span></h2>
 		<p class="lead">Quantitativo de vagas disponibilizado para os 47 novos AFRE, distribuído entre as 8 unidades da Sefaz/RN. Toque em uma lotação para ver quem a escolheu como 1ª preferência.</p>
+		<div class="export-bar">
+			<button type="button" class="btn-export" id="btnExportar">
+				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+				Descarregar relatório em ficheiro de Excel
+			</button>
+		</div>
 		<table class="ref ref-collapsible" id="tblVagas">
 			<thead><tr><th>Lotação</th><th class="num">Vagas</th></tr></thead>
 			<tbody></tbody>
@@ -1109,6 +1139,104 @@ function renderSummaryTables(atribReal, atribBase) {
 	});
 }
 
+// ======================= RELATÓRIO EM EXCEL (.xlsx) =======================
+//
+// Gera, inteiramente no navegador (com a biblioteca SheetJS), um arquivo .xlsx
+// com o retrato completo do simulador no momento do clique: preferências de
+// cada auditor, quadro de vagas, quem está designado em cada lotação (com a
+// preferência utilizada) e quem concorreu a cada lotação como 1ª preferência.
+
+function gerarRelatorioExcel() {
+	var atribReal = calcularAtribuicao(true);
+	var atribBase = calcularAtribuicao(false);
+
+	// --- Aba 1: Preferências ---
+	var linhasPref = [];
+	var display = pessoas.slice().sort(function(a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); });
+	display.forEach(function(p) {
+		var idx = pessoas.indexOf(p);
+		var linha = { 'Ordem': p.ordem, 'Nome': p.nome };
+		for (var s = 0; s < NUM_PREF; s++) {
+			var lotId = p.prefs[s];
+			linha[(s + 1) + 'ª preferência'] = lotId ? LOTACAO_BY_ID[lotId].nome : '';
+		}
+		var lotDesignada = atribReal[idx];
+		linha['Lotação designada'] = lotDesignada ? LOTACAO_BY_ID[lotDesignada].nome : '';
+		linhasPref.push(linha);
+	});
+
+	// --- Aba 2: Vagas por lotação ---
+	var linhasVagas = LOTACOES.map(function(l) {
+		return { 'Lotação': l.nome, 'Vagas': l.vagas };
+	});
+
+	// --- Aba 3: Lotações preenchidas (com a preferência utilizada) ---
+	var linhasPreenchidas = [];
+	LOTACOES.forEach(function(l) {
+		var ocupados = [];
+		pessoas.forEach(function(p, idx) {
+			if (atribReal[idx] === l.id) ocupados.push({ pessoa: p, idx: idx });
+		});
+		ocupados.sort(function(a, b) { return a.pessoa.nome.localeCompare(b.pessoa.nome, 'pt-BR'); });
+		ocupados.forEach(function(o) {
+			var slotIndex = o.pessoa.prefs.indexOf(l.id);
+			var prefLabel = slotIndex >= 0 ? (slotIndex + 1) + 'ª preferência' : '';
+			var perfilFoiNecessario = temPerfil(o.pessoa.nome, l.id) && atribBase[o.idx] !== l.id;
+			linhasPreenchidas.push({
+				'Lotação': l.nome,
+				'Ordem': o.pessoa.ordem,
+				'Nome': o.pessoa.nome,
+				'Preferência utilizada': prefLabel,
+				'Observação': perfilFoiNecessario ? 'PERFIL' : ''
+			});
+		});
+	});
+
+	// --- Aba 4: Candidatos por 1ª preferência (LOTADO / NÃO LOTADO) ---
+	var linhasCandidatos = [];
+	LOTACOES.forEach(function(l) {
+		var candidatos = [];
+		pessoas.forEach(function(p, idx) {
+			if (p.prefs[0] === l.id) candidatos.push({ pessoa: p, idx: idx });
+		});
+		candidatos.sort(function(a, b) { return a.pessoa.ordem - b.pessoa.ordem; });
+		candidatos.forEach(function(c) {
+			linhasCandidatos.push({
+				'Lotação': l.nome,
+				'Ordem': c.pessoa.ordem,
+				'Nome': c.pessoa.nome,
+				'Status': atribReal[c.idx] === l.id ? 'LOTADO' : 'NÃO LOTADO'
+			});
+		});
+	});
+
+	var wb = XLSX.utils.book_new();
+
+	var wsPref = XLSX.utils.json_to_sheet(linhasPref);
+	wsPref['!cols'] = [{ wch: 8 }, { wch: 42 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 22 }];
+	XLSX.utils.book_append_sheet(wb, wsPref, 'Preferências');
+
+	var wsVagas = XLSX.utils.json_to_sheet(linhasVagas);
+	wsVagas['!cols'] = [{ wch: 22 }, { wch: 8 }];
+	XLSX.utils.book_append_sheet(wb, wsVagas, 'Vagas por lotação');
+
+	var wsPreenchidas = XLSX.utils.json_to_sheet(linhasPreenchidas);
+	wsPreenchidas['!cols'] = [{ wch: 20 }, { wch: 8 }, { wch: 42 }, { wch: 20 }, { wch: 12 }];
+	XLSX.utils.book_append_sheet(wb, wsPreenchidas, 'Lotações preenchidas');
+
+	var wsCandidatos = XLSX.utils.json_to_sheet(linhasCandidatos);
+	wsCandidatos['!cols'] = [{ wch: 20 }, { wch: 8 }, { wch: 42 }, { wch: 14 }];
+	XLSX.utils.book_append_sheet(wb, wsCandidatos, 'Candidatos 1ª preferência');
+
+	var agora = new Date();
+	var pad = function(n) { return n < 10 ? '0' + n : String(n); };
+	var nomeArquivo = 'relatorio-lotacao-sefazrn-' + agora.getFullYear() + '-' +
+		pad(agora.getMonth() + 1) + '-' + pad(agora.getDate()) + '-' +
+		pad(agora.getHours()) + pad(agora.getMinutes()) + '.xlsx';
+
+	XLSX.writeFile(wb, nomeArquivo);
+}
+
 // ======================= EVENTOS =======================
 
 $(document).ready(function() {
@@ -1150,6 +1278,14 @@ $(document).ready(function() {
 
 		$body.toggleClass('hidden', !vaiExpandir);
 		$head.toggleClass('expanded', vaiExpandir);
+	});
+
+	$('#btnExportar').on('click', function() {
+		if (typeof XLSX === 'undefined') {
+			window.alert('Não foi possível carregar o gerador de planilhas. Verifique sua conexão com a internet e tente novamente.');
+			return;
+		}
+		gerarRelatorioExcel();
 	});
 });
 </script>
