@@ -41,7 +41,7 @@ Cada lotação é colapsável: ao tocar nela, expande-se a lista nominal de quem
 
 | Lotação | Vagas propostas |
 |---|---:|
-| SUMAT (Volante) | 10 |
+| SUMAT (Volante) | 8 |
 | SUFISE | 15 |
 | SUCADI | 5 |
 | COTIN | 5 |
@@ -49,6 +49,7 @@ Cada lotação é colapsável: ao tocar nela, expande-se a lista nominal de quem
 | SUMAT (NIF Caraú) | 4 |
 | COFIS | 2 |
 | CAT | 1 |
+| SUMAT (Interno) | 2 |
 | **Total** | **47** |
 
 ("Vagas ideais" não consta nesta tabela por ser um valor dinâmico, dependente das preferências preenchidas a cada momento — não um quantitativo fixo.)
@@ -61,9 +62,9 @@ Cada um dos 47 auditores fiscais possui um número de ordem de convocação (pos
 
 A cada alteração em qualquer dropdown de qualquer pessoa, a designação de **todos** os 47 auditores é recalculada do zero, na seguinte ordem:
 
-1. Zera-se o quantitativo de vagas restantes de cada uma das 8 lotações (igual ao total da tabela de vagas).
+1. Zera-se o quantitativo de vagas restantes de cada uma das 9 lotações (igual ao total da tabela de vagas).
 2. Percorre-se a lista de auditores **em ordem crescente de convocação** (do nº 1 ao último).
-3. Para cada auditor, percorrem-se suas 8 preferências, da 1ª à 8ª: a primeira lotação da sua lista de preferências que ainda tiver vaga disponível é a lotação designada a ele, e o quantitativo de vagas restantes dessa lotação é decrementado em 1.
+3. Para cada auditor, percorrem-se suas 9 preferências, da 1ª à 9ª: a primeira lotação da sua lista de preferências que ainda tiver vaga disponível é a lotação designada a ele, e o quantitativo de vagas restantes dessa lotação é decrementado em 1.
 4. Se nenhuma das lotações escolhidas pelo auditor (dentre as que ele efetivamente preencheu) tiver mais vaga disponível no momento em que se chega a ele na fila — ou se ele ainda não preencheu nenhuma preferência —, ele fica temporariamente sem lotação designada ("—"), até que as preferências sejam ajustadas.
 5. Repete-se o processo até o último auditor da ordem de convocação.
 

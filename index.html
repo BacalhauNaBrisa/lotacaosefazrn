@@ -253,7 +253,7 @@ table.assign{
 	border-collapse:separate;
 	border-spacing:0;
 	width:100%;
-	min-width:1560px;
+	min-width:1710px;
 	font-size:12.5px;
 }
 table.assign thead th{
@@ -553,7 +553,7 @@ footer a{color:var(--ink-600);}
 
 	<div class="card">
 		<h2>Vagas por lotação <span class="tag">referência</span></h2>
-		<p class="lead">Quantitativo de vagas disponibilizado para os 47 novos AFRE, distribuído entre as 8 unidades da Sefaz/RN, em "vagas propostas". A coluna "vagas ideais" mostra, em tempo real, quantos auditores escolheram cada lotação como 1ª preferência — uma comparação útil para perceber onde a demanda real diverge do quantitativo oficialmente disponibilizado. Toque em uma lotação para ver quem a escolheu como 1ª preferência.</p>
+		<p class="lead">Quantitativo de vagas disponibilizado para os 47 novos AFRE, distribuído entre as 9 unidades da Sefaz/RN, em "vagas propostas". A coluna "vagas ideais" mostra, em tempo real, quantos auditores escolheram cada lotação como 1ª preferência — uma comparação útil para perceber onde a demanda real diverge do quantitativo oficialmente disponibilizado. Toque em uma lotação para ver quem a escolheu como 1ª preferência.</p>
 		<div class="export-bar">
 			<button type="button" class="btn-export" id="btnExportar">
 				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -569,7 +569,7 @@ footer a{color:var(--ink-600);}
 
 	<div class="card">
 		<h2>Ordem de convocação e preferências <span class="tag">obrigatório</span></h2>
-		<p class="lead">Para cada um dos 47 auditores fiscais (listados abaixo em ordem alfabética), selecione as 8 lotações em ordem de preferência, da esquerda (1ª preferência) para a direita (8ª preferência). Uma lotação já escolhida em um dropdown deixa de ficar disponível nos demais dropdowns da mesma pessoa. A designação final de cada auditor é recalculada automaticamente, respeitando a ordem de convocação: primeiro se atende, integralmente, a preferência de quem foi convocado em 1º lugar; depois a de quem foi convocado em 2º lugar; e assim sucessivamente, até a última vaga. As seleções são sincronizadas em tempo real entre todas as pessoas que acessarem esta página: uma alteração feita por qualquer um dos 47 auditores aparece instantaneamente para todos os demais, sem precisar recarregar.</p>
+		<p class="lead">Para cada um dos 47 auditores fiscais (listados abaixo em ordem alfabética), selecione as 9 lotações em ordem de preferência, da esquerda (1ª preferência) para a direita (9ª preferência). Uma lotação já escolhida em um dropdown deixa de ficar disponível nos demais dropdowns da mesma pessoa. A designação final de cada auditor é recalculada automaticamente, respeitando a ordem de convocação: primeiro se atende, integralmente, a preferência de quem foi convocado em 1º lugar; depois a de quem foi convocado em 2º lugar; e assim sucessivamente, até a última vaga. As seleções são sincronizadas em tempo real entre todas as pessoas que acessarem esta página: uma alteração feita por qualquer um dos 47 auditores aparece instantaneamente para todos os demais, sem precisar recarregar.</p>
 
 		<div id="avisoLocal" class="sync-warning hidden">⚠️ A sincronização em tempo real com o Firebase não está configurada (ou não foi possível conectar). Suas seleções estão sendo salvas apenas neste navegador, e não serão vistas pelas outras 45 pessoas. Veja o <code>README.md</code> do repositório para configurar a sincronização entre todos os usuários.</div>
 
@@ -594,6 +594,7 @@ footer a{color:var(--ink-600);}
 							<th>6ª pref.</th>
 							<th>7ª pref.</th>
 							<th>8ª pref.</th>
+							<th>9ª pref.</th>
 							<th>Lotação designada</th>
 						</tr>
 					</thead>
@@ -621,14 +622,15 @@ footer a{color:var(--ink-600);}
 // ======================= DADOS =======================
 
 var LOTACOES = [
-	{ id: 'sumat_volante',    nome: 'SUMAT (Volante)',       vagas: 10 },
+	{ id: 'sumat_volante',    nome: 'SUMAT (Volante)',       vagas: 8  },
 	{ id: 'sufise',           nome: 'SUFISE',                vagas: 15 },
 	{ id: 'sucadi',           nome: 'SUCADI',                vagas: 5  },
 	{ id: 'cotin',            nome: 'COTIN',                 vagas: 5  },
 	{ id: 'suscomex',         nome: 'SUSCOMEX',              vagas: 5  },
 	{ id: 'sumat_nif',        nome: 'SUMAT (NIF Caraú)',     vagas: 4  },
 	{ id: 'cofis',            nome: 'COFIS',                 vagas: 2  },
-	{ id: 'cat',              nome: 'CAT',                   vagas: 1  }
+	{ id: 'cat',              nome: 'CAT',                   vagas: 1  },
+	{ id: 'sumat_interno',    nome: 'SUMAT (Interno)',       vagas: 2  }
 ];
 
 var LOTACAO_BY_ID = {};
@@ -639,9 +641,7 @@ LOTACOES.forEach(function(l){ LOTACAO_BY_ID[l.id] = l; });
 // convocação pior. Só é efetivamente "usado" (e exibido) quando, sem ele, o auditor
 // não conseguiria a vaga naturalmente. Não é exposto em nenhum outro lugar da página.
 var PERFIL_PAIRS = [
-	{ nome: 'DANIEL LIMA OLIVEIRA',              lotacaoId: 'cotin' },
-	{ nome: 'LUCAS VIDIGAL BRAGA',                lotacaoId: 'cotin' },
-	{ nome: 'MARCOS GABRIEL FERREIRA TOMAZ',      lotacaoId: 'cat'   }
+	{ nome: 'SILVIO JOSE VITOR FERREIRA',        lotacaoId: 'cotin' }
 ];
 var PERFIL_SET = {};
 PERFIL_PAIRS.forEach(function(pp) { PERFIL_SET[pp.nome + '|' + pp.lotacaoId] = true; });
@@ -649,7 +649,7 @@ function temPerfil(nome, lotacaoId) {
 	return !!PERFIL_SET[nome + '|' + lotacaoId];
 }
 
-var NUM_PREF = 8;
+var NUM_PREF = 9;
 var STORAGE_KEY = 'lotacaosefazrn_v1';
 
 var PESSOAS_BASE = [
@@ -1220,7 +1220,7 @@ function gerarRelatorioExcel() {
 	var wb = XLSX.utils.book_new();
 
 	var wsPref = XLSX.utils.json_to_sheet(linhasPref);
-	wsPref['!cols'] = [{ wch: 8 }, { wch: 42 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 22 }];
+	wsPref['!cols'] = [{ wch: 8 }, { wch: 42 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 22 }];
 	XLSX.utils.book_append_sheet(wb, wsPref, 'Preferências');
 
 	var wsVagas = XLSX.utils.json_to_sheet(linhasVagas);
