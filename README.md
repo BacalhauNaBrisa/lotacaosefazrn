@@ -32,7 +32,14 @@ Todo o cálculo roda **no navegador do usuário**, em JavaScript puro (nenhum da
 
 ### 1. Vagas por lotação
 
-| Lotação | Vagas |
+O quadro de referência exibido na página traz duas colunas lado a lado para cada lotação:
+
+- **Vagas propostas** — o quantitativo oficialmente disponibilizado para aquela lotação (fixo, definido manualmente no código-fonte).
+- **Vagas ideais** — quantos dos 47 auditores colocaram aquela lotação como sua **1ª preferência**, recalculado em tempo real a cada alteração feita por qualquer pessoa. Serve como um termômetro informal da demanda real: se "vagas ideais" for maior que "vagas propostas", há mais gente querendo aquela lotação como primeira opção do que vagas disponíveis; se for menor, sobra procura.
+
+Cada lotação é colapsável: ao tocar nela, expande-se a lista nominal de quem a escolheu como 1ª preferência (ordenada por ordem de convocação), com a marcação **LOTADO** ou **NÃO LOTADO** ao lado de cada nome, conforme o resultado final da simulação — mesmo para quem não conseguiu.
+
+| Lotação | Vagas propostas |
 |---|---:|
 | SUMAT (Volante) | 10 |
 | SUFISE | 15 |
@@ -43,6 +50,8 @@ Todo o cálculo roda **no navegador do usuário**, em JavaScript puro (nenhum da
 | COFIS | 2 |
 | CAT | 1 |
 | **Total** | **47** |
+
+("Vagas ideais" não consta nesta tabela por ser um valor dinâmico, dependente das preferências preenchidas a cada momento — não um quantitativo fixo.)
 
 ### 2. Ordem de convocação
 

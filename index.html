@@ -553,7 +553,7 @@ footer a{color:var(--ink-600);}
 
 	<div class="card">
 		<h2>Vagas por lotação <span class="tag">referência</span></h2>
-		<p class="lead">Quantitativo de vagas disponibilizado para os 47 novos AFRE, distribuído entre as 8 unidades da Sefaz/RN. Toque em uma lotação para ver quem a escolheu como 1ª preferência.</p>
+		<p class="lead">Quantitativo de vagas disponibilizado para os 47 novos AFRE, distribuído entre as 8 unidades da Sefaz/RN, em "vagas propostas". A coluna "vagas ideais" mostra, em tempo real, quantos auditores escolheram cada lotação como 1ª preferência — uma comparação útil para perceber onde a demanda real diverge do quantitativo oficialmente disponibilizado. Toque em uma lotação para ver quem a escolheu como 1ª preferência.</p>
 		<div class="export-bar">
 			<button type="button" class="btn-export" id="btnExportar">
 				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -561,9 +561,9 @@ footer a{color:var(--ink-600);}
 			</button>
 		</div>
 		<table class="ref ref-collapsible" id="tblVagas">
-			<thead><tr><th>Lotação</th><th class="num">Vagas</th></tr></thead>
+			<thead><tr><th>Lotação</th><th class="num">Vagas propostas</th><th class="num">Vagas ideais</th></tr></thead>
 			<tbody></tbody>
-			<tfoot><tr><td style="font-weight:700;">Total</td><td class="num" style="font-weight:700;" id="totalVagas"></td></tr></tfoot>
+			<tfoot><tr><td style="font-weight:700;">Total</td><td class="num" style="font-weight:700;" id="totalVagas"></td><td class="num" style="font-weight:700;" id="totalVagasIdeais"></td></tr></tfoot>
 		</table>
 	</div>
 
@@ -874,11 +874,12 @@ function renderVagasTable() {
 		var $head = $('<tr class="vaga-row-head">').attr('data-lot', l.id);
 		$head.append('<td><span class="chevron-inline" aria-hidden="true">▾</span>' + l.nome + '</td>');
 		$head.append('<td class="num">' + l.vagas + '</td>');
+		$head.append($('<td class="num">').attr('id', 'vagaIdeal-' + l.id).text('0'));
 		$tbody.append($head);
 
 		var $body = $('<tr class="vaga-row-body hidden">').attr('data-lot', l.id);
 		$body.append(
-			$('<td colspan="2">').append(
+			$('<td colspan="3">').append(
 				$('<div class="vaga-candidatos">').attr('id', 'vagaCand-' + l.id)
 			)
 		);
@@ -1073,12 +1074,16 @@ function recalcAssignments() {
 }
 
 function updateVagaCandidatos(atribReal) {
+	var totalIdeais = 0;
 	LOTACOES.forEach(function(l) {
 		var candidatos = [];
 		pessoas.forEach(function(p, idx) {
 			if (p.prefs[0] === l.id) candidatos.push({ pessoa: p, idx: idx });
 		});
 		candidatos.sort(function(a, b) { return a.pessoa.ordem - b.pessoa.ordem; });
+
+		$('#vagaIdeal-' + l.id).text(candidatos.length);
+		totalIdeais += candidatos.length;
 
 		var $container = $('#vagaCand-' + l.id).empty();
 		if (!candidatos.length) {
@@ -1099,6 +1104,7 @@ function updateVagaCandidatos(atribReal) {
 		});
 		$container.append($ol);
 	});
+	$('#totalVagasIdeais').text(totalIdeais);
 }
 
 function renderSummaryTables(atribReal, atribBase) {
@@ -1167,7 +1173,8 @@ function gerarRelatorioExcel() {
 
 	// --- Aba 2: Vagas por lotação ---
 	var linhasVagas = LOTACOES.map(function(l) {
-		return { 'Lotação': l.nome, 'Vagas': l.vagas };
+		var vagasIdeais = pessoas.filter(function(p) { return p.prefs[0] === l.id; }).length;
+		return { 'Lotação': l.nome, 'Vagas propostas': l.vagas, 'Vagas ideais': vagasIdeais };
 	});
 
 	// --- Aba 3: Lotações preenchidas (com a preferência utilizada) ---
@@ -1217,7 +1224,7 @@ function gerarRelatorioExcel() {
 	XLSX.utils.book_append_sheet(wb, wsPref, 'Preferências');
 
 	var wsVagas = XLSX.utils.json_to_sheet(linhasVagas);
-	wsVagas['!cols'] = [{ wch: 22 }, { wch: 8 }];
+	wsVagas['!cols'] = [{ wch: 22 }, { wch: 14 }, { wch: 12 }];
 	XLSX.utils.book_append_sheet(wb, wsVagas, 'Vagas por lotação');
 
 	var wsPreenchidas = XLSX.utils.json_to_sheet(linhasPreenchidas);
