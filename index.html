@@ -242,6 +242,18 @@ table.ref tr:last-child td{border-bottom:none;}
 }
 .sync-warning a{color:var(--gold-600); font-weight:600;}
 
+.readonly-banner{
+	font-size:12.5px;
+	font-weight:600;
+	color:var(--navy-900);
+	background:var(--cream-100);
+	border-left:3px solid var(--navy-700);
+	padding:9px 12px;
+	border-radius:4px;
+	margin-bottom:16px;
+	line-height:1.5;
+}
+
 /* ---------- assignment table ---------- */
 .assign-wrap{
 	overflow:auto;
@@ -571,6 +583,8 @@ footer a{color:var(--ink-600);}
 		<h2>Ordem de convocação e preferências <span class="tag">obrigatório</span></h2>
 		<p class="lead">Para cada um dos 47 auditores fiscais (listados abaixo em ordem alfabética), selecione as 9 lotações em ordem de preferência, da esquerda (1ª preferência) para a direita (9ª preferência). Uma lotação já escolhida em um dropdown deixa de ficar disponível nos demais dropdowns da mesma pessoa. A designação final de cada auditor é recalculada automaticamente, respeitando a ordem de convocação: primeiro se atende, integralmente, a preferência de quem foi convocado em 1º lugar; depois a de quem foi convocado em 2º lugar; e assim sucessivamente, até a última vaga. As seleções são sincronizadas em tempo real entre todas as pessoas que acessarem esta página: uma alteração feita por qualquer um dos 47 auditores aparece instantaneamente para todos os demais, sem precisar recarregar.</p>
 
+		<div id="avisoSomenteLeitura" class="readonly-banner hidden">🔒 Modo somente leitura: as seleções estão temporariamente travadas para consulta. Nenhuma alteração pode ser feita no momento — os dropdowns abaixo servem apenas para visualização.</div>
+
 		<div id="avisoLocal" class="sync-warning hidden">⚠️ A sincronização em tempo real com o Firebase não está configurada (ou não foi possível conectar). Suas seleções estão sendo salvas apenas neste navegador, e não serão vistas pelas outras 45 pessoas. Veja o <code>README.md</code> do repositório para configurar a sincronização entre todos os usuários.</div>
 
 		<div class="status-line">
@@ -651,6 +665,13 @@ function temPerfil(nome, lotacaoId) {
 
 var NUM_PREF = 9;
 var STORAGE_KEY = 'lotacaosefazrn_v1';
+
+// Trava temporária de somente-leitura: com true, ninguém consegue alterar nenhuma
+// preferência pelo site (todos os dropdowns ficam desabilitados, mesmo assim
+// mostrando as seleções já feitas). Os dados continuam sendo exibidos e
+// sincronizados normalmente — só a edição fica bloqueada. Para reabilitar as
+// edições normalmente, troque para false e publique o arquivo de novo.
+var SOMENTE_LEITURA = true;
 
 var PESSOAS_BASE = [
 	{ nome: 'ALEXANDRE PALHARES LEITE',                 ordem: 33 },
@@ -904,6 +925,7 @@ function renderPeopleTable() {
 		$row.append('<td class="col-nome">' + p.nome + '</td>');
 		for (var s = 0; s < NUM_PREF; s++) {
 			var $sel = $('<select>').addClass('pref-select').attr('data-person', idx).attr('data-slot', s);
+			if (SOMENTE_LEITURA) $sel.prop('disabled', true);
 			$row.append($('<td>').append($sel));
 		}
 		$row.append('<td class="col-designada designada-cell empty" data-idx="' + idx + '">—</td>');
@@ -926,6 +948,7 @@ function renderPeopleTable() {
 			var $field = $('<div class="pref-field">');
 			$field.append('<label>' + (s2 + 1) + 'ª preferência</label>');
 			var $sel2 = $('<select>').addClass('pref-select').attr('data-person', idx).attr('data-slot', s2);
+			if (SOMENTE_LEITURA) $sel2.prop('disabled', true);
 			$field.append($sel2);
 			$grid.append($field);
 		}
@@ -966,6 +989,7 @@ function refreshPersonSelects(idx) {
 		var $sel = $('select.pref-select[data-person="' + idx + '"][data-slot="' + s + '"]');
 		$sel.html(html);
 		$sel.val(current || '');
+		if (SOMENTE_LEITURA) $sel.prop('disabled', true);
 	}
 }
 
@@ -1251,6 +1275,10 @@ $(document).ready(function() {
 	renderVagasTable();
 	renderPeopleTable();
 
+	if (SOMENTE_LEITURA) {
+		$('#avisoSomenteLeitura').removeClass('hidden');
+	}
+
 	// Popula os selects vazios antes da sincronização terminar de carregar,
 	// para a tabela já aparecer completa enquanto conecta.
 	refreshAllSelects();
@@ -1259,6 +1287,8 @@ $(document).ready(function() {
 	iniciarSincronizacao();
 
 	$('#assignContainer').on('change', 'select.pref-select', function() {
+		if (SOMENTE_LEITURA) return; // trava de segurança extra: nenhuma edição é aceita neste modo
+
 		var idx = parseInt($(this).data('person'), 10);
 		var slot = parseInt($(this).data('slot'), 10);
 		pessoas[idx].prefs[slot] = $(this).val();
