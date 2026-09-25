@@ -254,6 +254,34 @@ table.ref tr:last-child td{border-bottom:none;}
 	line-height:1.5;
 }
 
+.sort-bar{
+	display:flex;
+	align-items:center;
+	gap:10px;
+	flex-wrap:wrap;
+	margin-bottom:16px;
+}
+.sort-bar label{
+	font-size:12.5px;
+	font-weight:600;
+	color:var(--ink-600);
+}
+.sort-select{
+	font:inherit;
+	font-size:13px;
+	padding:7px 10px;
+	border:1.5px solid var(--line);
+	border-radius:7px;
+	background:#fff;
+	color:var(--ink-900);
+	cursor:pointer;
+}
+.sort-select:focus{
+	outline:none;
+	border-color:var(--navy-700);
+	box-shadow:0 0 0 3px rgba(39,75,125,.15);
+}
+
 /* ---------- assignment table ---------- */
 .assign-wrap{
 	overflow:auto;
@@ -581,7 +609,7 @@ footer a{color:var(--ink-600);}
 
 	<div class="card">
 		<h2>Ordem de convocação e preferências <span class="tag">obrigatório</span></h2>
-		<p class="lead">Para cada um dos 47 auditores fiscais (listados abaixo em ordem alfabética), selecione as 9 lotações em ordem de preferência, da esquerda (1ª preferência) para a direita (9ª preferência). Uma lotação já escolhida em um dropdown deixa de ficar disponível nos demais dropdowns da mesma pessoa. A designação final de cada auditor é recalculada automaticamente, respeitando a ordem de convocação: primeiro se atende, integralmente, a preferência de quem foi convocado em 1º lugar; depois a de quem foi convocado em 2º lugar; e assim sucessivamente, até a última vaga. As seleções são sincronizadas em tempo real entre todas as pessoas que acessarem esta página: uma alteração feita por qualquer um dos 47 auditores aparece instantaneamente para todos os demais, sem precisar recarregar.</p>
+		<p class="lead">Para cada um dos 47 auditores fiscais, selecione as 9 lotações em ordem de preferência, da esquerda (1ª preferência) para a direita (9ª preferência). Uma lotação já escolhida em um dropdown deixa de ficar disponível nos demais dropdowns da mesma pessoa. A designação final de cada auditor é recalculada automaticamente, respeitando a ordem de convocação: primeiro se atende, integralmente, a preferência de quem foi convocado em 1º lugar; depois a de quem foi convocado em 2º lugar; e assim sucessivamente, até a última vaga. As seleções são sincronizadas em tempo real entre todas as pessoas que acessarem esta página: uma alteração feita por qualquer um dos 47 auditores aparece instantaneamente para todos os demais, sem precisar recarregar.</p>
 
 		<div id="avisoSomenteLeitura" class="readonly-banner hidden">🔒 Modo somente leitura: as seleções estão temporariamente travadas para consulta. Nenhuma alteração pode ser feita no momento — os dropdowns abaixo servem apenas para visualização.</div>
 
@@ -591,6 +619,16 @@ footer a{color:var(--ink-600);}
 			<span id="syncBadge" class="sync-badge sync-local">Conectando…</span>
 			<span>Lotações já atribuídas: <b id="statusAtribuidas">0</b> / <b id="statusTotal">47</b></span>
 			<span>Aguardando lotação: <b id="statusPendentes">47</b></span>
+		</div>
+
+		<div class="sort-bar">
+			<label for="ordenacaoSelect">Ordenar por</label>
+			<select id="ordenacaoSelect" class="sort-select">
+				<option value="ordem-asc" selected>Ordem de convocação (crescente)</option>
+				<option value="ordem-desc">Ordem de convocação (decrescente)</option>
+				<option value="nome-asc">Nome (A → Z)</option>
+				<option value="nome-desc">Nome (Z → A)</option>
+			</select>
 		</div>
 
 		<div id="assignContainer">
@@ -672,6 +710,10 @@ var STORAGE_KEY = 'lotacaosefazrn_v1';
 // sincronizados normalmente — só a edição fica bloqueada. Para reabilitar as
 // edições normalmente, troque para false e publique o arquivo de novo.
 var SOMENTE_LEITURA = true;
+
+// Critério de ordenação da listagem de auditores (tabela e cartões mobile).
+// Controlado pelo seletor "Ordenar por"; padrão = ordem de convocação crescente.
+var ORDENACAO_ATUAL = 'ordem-asc';
 
 var PESSOAS_BASE = [
 	{ nome: 'ALEXANDRE PALHARES LEITE',                 ordem: 33 },
@@ -909,10 +951,28 @@ function renderVagasTable() {
 	$('#totalVagas').text(total);
 }
 
+function getPessoasOrdenadas() {
+	var arr = pessoas.slice();
+	switch (ORDENACAO_ATUAL) {
+		case 'ordem-desc':
+			arr.sort(function(a, b) { return b.ordem - a.ordem; });
+			break;
+		case 'nome-asc':
+			arr.sort(function(a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); });
+			break;
+		case 'nome-desc':
+			arr.sort(function(a, b) { return b.nome.localeCompare(a.nome, 'pt-BR'); });
+			break;
+		case 'ordem-asc':
+		default:
+			arr.sort(function(a, b) { return a.ordem - b.ordem; });
+			break;
+	}
+	return arr;
+}
+
 function renderPeopleTable() {
-	var display = pessoas.slice().sort(function(a, b) {
-		return a.nome.localeCompare(b.nome, 'pt-BR');
-	});
+	var display = getPessoasOrdenadas();
 	var $tbody = $('#tblAssign tbody').empty();
 	var $cards = $('#personCards').empty();
 
@@ -961,6 +1021,22 @@ function renderPeopleTable() {
 function pad2(n) {
 	n = String(n);
 	return n.length < 2 ? '0' + n : n;
+}
+
+function capturarCartoesExpandidos() {
+	var idxs = [];
+	$('#personCards .person-card.expanded').each(function() {
+		idxs.push($(this).attr('data-idx'));
+	});
+	return idxs;
+}
+
+function restaurarCartoesExpandidos(idxs) {
+	idxs.forEach(function(idx) {
+		var $card = $('#personCards .person-card[data-idx="' + idx + '"]');
+		$card.addClass('expanded');
+		$card.find('.person-card-head').attr('aria-expanded', 'true');
+	});
 }
 
 function refreshPersonSelects(idx) {
@@ -1295,6 +1371,16 @@ $(document).ready(function() {
 
 		refreshPersonSelects(idx);
 		escreverPreferenciaPessoa(idx);
+		recalcAssignments();
+	});
+
+	$('#ordenacaoSelect').on('change', function() {
+		ORDENACAO_ATUAL = $(this).val();
+
+		var expandidos = capturarCartoesExpandidos();
+		renderPeopleTable();
+		restaurarCartoesExpandidos(expandidos);
+		refreshAllSelects();
 		recalcAssignments();
 	});
 
