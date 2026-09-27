@@ -661,6 +661,17 @@ footer a{color:var(--ink-600);}
 	<div class="card">
 		<h2>Lotações preenchidas <span class="tag">dinâmico</span></h2>
 		<p class="lead">Relação, por lotação, dos auditores fiscais atualmente designados, atualizada automaticamente a cada alteração de preferência.</p>
+		<div class="sort-bar">
+			<label for="ordenacaoPreenchidasSelect">Ordenar por</label>
+			<select id="ordenacaoPreenchidasSelect" class="sort-select">
+				<option value="pref-asc" selected>Preferência utilizada (crescente)</option>
+				<option value="pref-desc">Preferência utilizada (decrescente)</option>
+				<option value="nome-asc">Nome (A → Z)</option>
+				<option value="nome-desc">Nome (Z → A)</option>
+				<option value="ordem-asc">Ordem de convocação (crescente)</option>
+				<option value="ordem-desc">Ordem de convocação (decrescente)</option>
+			</select>
+		</div>
 		<div class="summary-grid" id="summaryGrid"></div>
 	</div>
 
@@ -714,6 +725,11 @@ var SOMENTE_LEITURA = true;
 // Critério de ordenação da listagem de auditores (tabela e cartões mobile).
 // Controlado pelo seletor "Ordenar por"; padrão = ordem de convocação crescente.
 var ORDENACAO_ATUAL = 'ordem-asc';
+
+// Critério de ordenação da lista de ocupantes dentro de cada card de "Lotações
+// preenchidas". Controlado pelo seletor "Ordenar por" daquele card; padrão =
+// preferência utilizada crescente (quem usou a 1ª preferência aparece primeiro).
+var ORDENACAO_PREENCHIDAS = 'pref-asc';
 
 var PESSOAS_BASE = [
 	{ nome: 'ALEXANDRE PALHARES LEITE',                 ordem: 33 },
@@ -1207,6 +1223,38 @@ function updateVagaCandidatos(atribReal) {
 	$('#totalVagasIdeais').text(totalIdeais);
 }
 
+function ordenarOcupados(ocupados, lotId) {
+	// calcula, para cada ocupante, o índice (0-based) da preferência que foi
+	// usada para colocá-lo nesta lotação — necessário tanto para exibir o
+	// rótulo "Nª preferência" quanto para ordenar por esse critério.
+	ocupados.forEach(function(o) {
+		o.slotIndex = o.pessoa.prefs.indexOf(lotId);
+	});
+
+	switch (ORDENACAO_PREENCHIDAS) {
+		case 'pref-desc':
+			ocupados.sort(function(a, b) { return b.slotIndex - a.slotIndex; });
+			break;
+		case 'nome-asc':
+			ocupados.sort(function(a, b) { return a.pessoa.nome.localeCompare(b.pessoa.nome, 'pt-BR'); });
+			break;
+		case 'nome-desc':
+			ocupados.sort(function(a, b) { return b.pessoa.nome.localeCompare(a.pessoa.nome, 'pt-BR'); });
+			break;
+		case 'ordem-asc':
+			ocupados.sort(function(a, b) { return a.pessoa.ordem - b.pessoa.ordem; });
+			break;
+		case 'ordem-desc':
+			ocupados.sort(function(a, b) { return b.pessoa.ordem - a.pessoa.ordem; });
+			break;
+		case 'pref-asc':
+		default:
+			ocupados.sort(function(a, b) { return a.slotIndex - b.slotIndex; });
+			break;
+	}
+	return ocupados;
+}
+
 function renderSummaryTables(atribReal, atribBase) {
 	var $grid = $('#summaryGrid').empty();
 	LOTACOES.forEach(function(l) {
@@ -1214,7 +1262,7 @@ function renderSummaryTables(atribReal, atribBase) {
 		pessoas.forEach(function(p, idx) {
 			if (atribReal[idx] === l.id) ocupados.push({ pessoa: p, idx: idx });
 		});
-		ocupados.sort(function(a, b) { return a.pessoa.nome.localeCompare(b.pessoa.nome, 'pt-BR'); });
+		ocupados = ordenarOcupados(ocupados, l.id);
 
 		var $card = $('<div class="summary-card">');
 		$card.append('<h3>' + l.nome + ' <span class="count">' + ocupados.length + ' / ' + l.vagas + '</span></h3>');
@@ -1228,8 +1276,7 @@ function renderSummaryTables(atribReal, atribBase) {
 				var perfilFoiNecessario = temPerfil(o.pessoa.nome, l.id) && atribBase[o.idx] !== l.id;
 				var tag = perfilFoiNecessario ? ' <span class="perfil-tag">PERFIL</span>' : '';
 
-				var slotIndex = o.pessoa.prefs.indexOf(l.id);
-				var prefLabel = slotIndex >= 0 ? (slotIndex + 1) + 'ª preferência' : '';
+				var prefLabel = o.slotIndex >= 0 ? (o.slotIndex + 1) + 'ª preferência' : '';
 
 				$ol.append(
 					'<li>' + o.pessoa.nome +
@@ -1284,10 +1331,9 @@ function gerarRelatorioExcel() {
 		pessoas.forEach(function(p, idx) {
 			if (atribReal[idx] === l.id) ocupados.push({ pessoa: p, idx: idx });
 		});
-		ocupados.sort(function(a, b) { return a.pessoa.nome.localeCompare(b.pessoa.nome, 'pt-BR'); });
+		ocupados = ordenarOcupados(ocupados, l.id);
 		ocupados.forEach(function(o) {
-			var slotIndex = o.pessoa.prefs.indexOf(l.id);
-			var prefLabel = slotIndex >= 0 ? (slotIndex + 1) + 'ª preferência' : '';
+			var prefLabel = o.slotIndex >= 0 ? (o.slotIndex + 1) + 'ª preferência' : '';
 			var perfilFoiNecessario = temPerfil(o.pessoa.nome, l.id) && atribBase[o.idx] !== l.id;
 			linhasPreenchidas.push({
 				'Lotação': l.nome,
@@ -1381,6 +1427,11 @@ $(document).ready(function() {
 		renderPeopleTable();
 		restaurarCartoesExpandidos(expandidos);
 		refreshAllSelects();
+		recalcAssignments();
+	});
+
+	$('#ordenacaoPreenchidasSelect').on('change', function() {
+		ORDENACAO_PREENCHIDAS = $(this).val();
 		recalcAssignments();
 	});
 
