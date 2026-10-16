@@ -684,18 +684,25 @@ footer a{color:var(--ink-600);}
 // ======================= DADOS =======================
 
 var LOTACOES = [
-	{ id: 'sumat_volante',    nome: 'SUMAT (Volante)',       vagas: 15 },
-	{ id: 'sufise',           nome: 'SUFISE',                vagas: 11 },
-	{ id: 'sucadi',           nome: 'SUCADI',                vagas: 4  },
-	{ id: 'cotin',            nome: 'COTIN',                 vagas: 5  },
-	{ id: 'suscomex',         nome: 'SUSCOMEX',              vagas: 8  },
-	{ id: 'cofis',            nome: 'COFIS',                 vagas: 2  },
-	{ id: 'cat',              nome: 'CAT',                   vagas: 1  },
-	{ id: 'cace',             nome: 'CACE',                  vagas: 1  }
+	{ id: 'sumat_volante',    nome: 'SUMAT', vagas: 14 },
+	{ id: 'sufise',           nome: 'SUFISE', vagas: 10 },
+	{ id: 'sucadi',           nome: 'SUCADI', vagas: 4 },
+	{ id: 'cotin',            nome: 'COTIN', vagas: 5 },
+	{ id: 'suscomex',         nome: 'SUSCOMEX', vagas: 8 },
+	{ id: 'cofis',            nome: 'COFIS', vagas: 4 },
+	{ id: 'cat',              nome: 'CAT', vagas: 1 },
+	{ id: 'cace',             nome: 'CACE', vagas: 1 }
 ];
 
 var LOTACAO_BY_ID = {};
 LOTACOES.forEach(function(l){ LOTACAO_BY_ID[l.id] = l; });
+
+// Ordem de exibição em "Vagas por lotação" e "Lotações preenchidas": vagas propostas
+// decrescente; empate => alfabético. (As colunas de preferência seguem a ordem de LOTACOES.)
+var LOTACOES_ORDENADAS = LOTACOES.slice().sort(function(a, b) {
+	if (b.vagas !== a.vagas) return b.vagas - a.vagas;
+	return a.nome.localeCompare(b.nome, 'pt-BR');
+});
 
 // Atributo oculto PERFIL: confere, a um par específico auditor/lotação, prioridade
 // sobre os demais auditores concorrendo pela mesma lotação, mesmo com ordem de
@@ -952,7 +959,7 @@ function saveStateLocal() {
 function renderVagasTable() {
 	var $tbody = $('#tblVagas tbody').empty();
 	var total = 0;
-	LOTACOES.forEach(function(l) {
+	LOTACOES_ORDENADAS.forEach(function(l) {
 		total += l.vagas;
 
 		var $head = $('<tr class="vaga-row-head">').attr('data-lot', l.id);
@@ -1196,7 +1203,7 @@ function recalcAssignments() {
 
 function updateVagaCandidatos(atribReal) {
 	var totalIdeais = 0;
-	LOTACOES.forEach(function(l) {
+	LOTACOES_ORDENADAS.forEach(function(l) {
 		var candidatos = [];
 		pessoas.forEach(function(p, idx) {
 			if (p.prefs[0] === l.id) candidatos.push({ pessoa: p, idx: idx });
@@ -1262,7 +1269,7 @@ function ordenarOcupados(ocupados, lotId) {
 
 function renderSummaryTables(atribReal, atribBase) {
 	var $grid = $('#summaryGrid').empty();
-	LOTACOES.forEach(function(l) {
+	LOTACOES_ORDENADAS.forEach(function(l) {
 		var ocupados = [];
 		pessoas.forEach(function(p, idx) {
 			if (atribReal[idx] === l.id) ocupados.push({ pessoa: p, idx: idx });
@@ -1324,14 +1331,14 @@ function gerarRelatorioExcel() {
 	});
 
 	// --- Aba 2: Vagas por lotação ---
-	var linhasVagas = LOTACOES.map(function(l) {
+	var linhasVagas = LOTACOES_ORDENADAS.map(function(l) {
 		var vagasIdeais = pessoas.filter(function(p) { return p.prefs[0] === l.id; }).length;
 		return { 'Lotação': l.nome, 'Vagas propostas': l.vagas, 'Vagas ideais': vagasIdeais };
 	});
 
 	// --- Aba 3: Lotações preenchidas (com a preferência utilizada) ---
 	var linhasPreenchidas = [];
-	LOTACOES.forEach(function(l) {
+	LOTACOES_ORDENADAS.forEach(function(l) {
 		var ocupados = [];
 		pessoas.forEach(function(p, idx) {
 			if (atribReal[idx] === l.id) ocupados.push({ pessoa: p, idx: idx });
@@ -1352,7 +1359,7 @@ function gerarRelatorioExcel() {
 
 	// --- Aba 4: Candidatos por 1ª preferência (LOTADO / NÃO LOTADO) ---
 	var linhasCandidatos = [];
-	LOTACOES.forEach(function(l) {
+	LOTACOES_ORDENADAS.forEach(function(l) {
 		var candidatos = [];
 		pessoas.forEach(function(p, idx) {
 			if (p.prefs[0] === l.id) candidatos.push({ pessoa: p, idx: idx });
