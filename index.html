@@ -684,14 +684,14 @@ footer a{color:var(--ink-600);}
 // ======================= DADOS =======================
 
 var LOTACOES = [
-	{ id: 'sumat_volante',    nome: 'SUMAT (Volante)',       vagas: 10 },
-	{ id: 'sufise',           nome: 'SUFISE',                vagas: 10 },
+	{ id: 'sumat_volante',    nome: 'SUMAT (Volante)',       vagas: 15 },
+	{ id: 'sufise',           nome: 'SUFISE',                vagas: 11 },
 	{ id: 'sucadi',           nome: 'SUCADI',                vagas: 4  },
-	{ id: 'cotin',            nome: 'COTIN',                 vagas: 7  },
-	{ id: 'suscomex',         nome: 'SUSCOMEX',              vagas: 7  },
-	{ id: 'cofis',            nome: 'COFIS',                 vagas: 3  },
+	{ id: 'cotin',            nome: 'COTIN',                 vagas: 5  },
+	{ id: 'suscomex',         nome: 'SUSCOMEX',              vagas: 8  },
+	{ id: 'cofis',            nome: 'COFIS',                 vagas: 2  },
 	{ id: 'cat',              nome: 'CAT',                   vagas: 1  },
-	{ id: 'sumat_interno',    nome: 'SUMAT (Interno)',       vagas: 5  }
+	{ id: 'cace',             nome: 'CACE',                  vagas: 1  }
 ];
 
 var LOTACAO_BY_ID = {};
@@ -702,7 +702,10 @@ LOTACOES.forEach(function(l){ LOTACAO_BY_ID[l.id] = l; });
 // convocação pior. Só é efetivamente "usado" (e exibido) quando, sem ele, o auditor
 // não conseguiria a vaga naturalmente. Não é exposto em nenhum outro lugar da página.
 var PERFIL_PAIRS = [
-	{ nome: 'SILVIO JOSE VITOR FERREIRA',        lotacaoId: 'cotin' }
+	{ nome: 'SILVIO JOSE VITOR FERREIRA',        lotacaoId: 'cotin' },
+	{ nome: 'MARILA SOARES MELO',                lotacaoId: 'cace' },
+	{ nome: 'MARCOS GABRIEL FERREIRA TOMAZ',     lotacaoId: 'cat' },
+	{ nome: 'DANIEL LIMA OLIVEIRA',               lotacaoId: 'cotin' }
 ];
 var PERFIL_SET = {};
 PERFIL_PAIRS.forEach(function(pp) { PERFIL_SET[pp.nome + '|' + pp.lotacaoId] = true; });

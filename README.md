@@ -41,14 +41,14 @@ Cada lotação é colapsável: ao tocar nela, expande-se a lista nominal de quem
 
 | Lotação | Vagas propostas |
 |---|---:|
-| SUMAT (Volante) | 10 |
-| SUFISE | 10 |
+| SUMAT (Volante) | 15 |
+| SUFISE | 11 |
 | SUCADI | 4 |
-| COTIN | 7 |
-| SUSCOMEX | 7 |
-| COFIS | 3 |
+| COTIN | 5 |
+| SUSCOMEX | 8 |
+| COFIS | 2 |
 | CAT | 1 |
-| SUMAT (Interno) | 5 |
+| CACE | 1 |
 | **Total** | **47** |
 
 ("Vagas ideais" não consta nesta tabela por ser um valor dinâmico, dependente das preferências preenchidas a cada momento — não um quantitativo fixo.)
