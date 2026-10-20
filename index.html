@@ -709,10 +709,6 @@ var LOTACOES_ORDENADAS = LOTACOES.slice().sort(function(a, b) {
 // convocação pior. Só é efetivamente "usado" (e exibido) quando, sem ele, o auditor
 // não conseguiria a vaga naturalmente. Não é exposto em nenhum outro lugar da página.
 var PERFIL_PAIRS = [
-	{ nome: 'SILVIO JOSE VITOR FERREIRA',        lotacaoId: 'cotin' },
-	{ nome: 'MARILA SOARES MELO',                lotacaoId: 'cace' },
-	{ nome: 'MARCOS GABRIEL FERREIRA TOMAZ',     lotacaoId: 'cat' },
-	{ nome: 'DANIEL LIMA OLIVEIRA',               lotacaoId: 'cotin' },
 	{ nome: 'GUSTAVO LINS FREIRE',                lotacaoId: 'sufise' }
 ];
 // PERFIL OBRIGATÓRIO: a pessoa é lotada na lotação indicada, independentemente das
@@ -724,7 +720,12 @@ var PERFIL_OBRIGATORIO_PAIRS = [
 	{ nome: 'ROBERTO EVELIM PENHA BORGES',         lotacaoId: 'cofis' },
 	{ nome: 'THIAGO LIMA DE FREITAS NOBRE',        lotacaoId: 'cofis' },
 	{ nome: 'MOZART HENDEL GOMES DE ALMEIDA',      lotacaoId: 'cofis' },
-	{ nome: 'FABIANO KENNEDY LIMA FERNANDES',      lotacaoId: 'cace' }
+	{ nome: 'FABIANO KENNEDY LIMA FERNANDES',      lotacaoId: 'cace' },
+	{ nome: 'DANIEL LIMA OLIVEIRA',                lotacaoId: 'cotin' },
+	{ nome: 'JOSE RODOLFO BEZERRA MESQUITA ARAUJO', lotacaoId: 'cotin' },
+	{ nome: 'LUCAS VIDIGAL BRAGA',                 lotacaoId: 'cotin' },
+	{ nome: 'MARILA SOARES MELO',                  lotacaoId: 'cace' },
+	{ nome: 'MARCOS GABRIEL FERREIRA TOMAZ',       lotacaoId: 'cat' }
 ];
 var PERFIL_OBRIG_POR_NOME = {};
 PERFIL_OBRIGATORIO_PAIRS.forEach(function(pp) { PERFIL_OBRIG_POR_NOME[pp.nome] = pp.lotacaoId; });
