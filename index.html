@@ -689,9 +689,9 @@ var LOTACOES = [
 	{ id: 'sucadi',           nome: 'SUCADI', vagas: 4 },
 	{ id: 'cotin',            nome: 'COTIN', vagas: 5 },
 	{ id: 'suscomex',         nome: 'SUSCOMEX', vagas: 8 },
-	{ id: 'cofis',            nome: 'COFIS', vagas: 4 },
+	{ id: 'cofis',            nome: 'COFIS', vagas: 3 },
 	{ id: 'cat',              nome: 'CAT', vagas: 1 },
-	{ id: 'cace',             nome: 'CACE', vagas: 1 }
+	{ id: 'cace',             nome: 'CACE', vagas: 2 }
 ];
 
 var LOTACAO_BY_ID = {};
@@ -715,6 +715,23 @@ var PERFIL_PAIRS = [
 	{ nome: 'DANIEL LIMA OLIVEIRA',               lotacaoId: 'cotin' },
 	{ nome: 'GUSTAVO LINS FREIRE',                lotacaoId: 'sufise' }
 ];
+// PERFIL OBRIGATÓRIO: a pessoa é lotada na lotação indicada, independentemente das
+// preferências que preencheu, e ocupa a vaga antes de qualquer outro auditor (com ou
+// sem PERFIL, e com qualquer ordem de convocação). Não é exposto em nenhum outro lugar.
+var PERFIL_OBRIGATORIO_PAIRS = [
+	{ nome: 'GIRLIAN ANTONIO DOS SANTOS',          lotacaoId: 'cotin' },
+	{ nome: 'JORGE WASHINGTON OLIVEIRA DE MORAIS', lotacaoId: 'cotin' },
+	{ nome: 'ROBERTO EVELIM PENHA BORGES',         lotacaoId: 'cofis' },
+	{ nome: 'THIAGO LIMA DE FREITAS NOBRE',        lotacaoId: 'cofis' },
+	{ nome: 'MOZART HENDEL GOMES DE ALMEIDA',      lotacaoId: 'cofis' },
+	{ nome: 'FABIANO KENNEDY LIMA FERNANDES',      lotacaoId: 'cace' }
+];
+var PERFIL_OBRIG_POR_NOME = {};
+PERFIL_OBRIGATORIO_PAIRS.forEach(function(pp) { PERFIL_OBRIG_POR_NOME[pp.nome] = pp.lotacaoId; });
+function perfilObrigatorio(nome, lotacaoId) {
+	return PERFIL_OBRIG_POR_NOME[nome] === lotacaoId;
+}
+
 var PERFIL_SET = {};
 PERFIL_PAIRS.forEach(function(pp) { PERFIL_SET[pp.nome + '|' + pp.lotacaoId] = true; });
 function temPerfil(nome, lotacaoId) {
@@ -1133,7 +1150,24 @@ function calcularAtribuicao(usarPerfil) {
 	var proximoSlot = pessoas.map(function() { return 0; });
 	var matched = pessoas.map(function() { return null; }); // idx -> lotacaoId ou null
 
-	var fila = pessoas.map(function(_, idx) { return idx; });
+	// PERFIL OBRIGATÓRIO: lotados de antemão (por ordem de convocação, se excederem a
+	// capacidade) e fora da disputa; suas preferências são ignoradas.
+	var fixos = {};
+	pessoas.map(function(p, idx) { return idx; })
+		.sort(function(a, b) { return pessoas[a].ordem - pessoas[b].ordem; })
+		.forEach(function(idx) {
+			var lotObr = PERFIL_OBRIG_POR_NOME[pessoas[idx].nome];
+			if (lotObr && capacidade[lotObr] !== undefined && ocupantes[lotObr].length < capacidade[lotObr]) {
+				ocupantes[lotObr].push(idx);
+				matched[idx] = lotObr;
+				fixos[idx] = true;
+			}
+		});
+	// as vagas ocupadas por obrigatórios saem da disputa
+	Object.keys(ocupantes).forEach(function(k) { capacidade[k] -= ocupantes[k].length; ocupantes[k] = []; });
+
+	var fila = [];
+	pessoas.forEach(function(_, idx) { if (!fixos[idx]) fila.push(idx); });
 	var cursor = 0;
 
 	while (cursor < fila.length) {
@@ -1149,6 +1183,7 @@ function calcularAtribuicao(usarPerfil) {
 		}
 		if (!lot) continue; // esgotou as preferências preenchidas: fica sem lotação
 
+		if (capacidade[lot] <= 0) { fila.push(idx); continue; } // todas as vagas já tomadas por PERFIL OBRIGATÓRIO
 		if (ocupantes[lot].length < capacidade[lot]) {
 			ocupantes[lot].push(idx);
 			matched[idx] = lot;
@@ -1286,15 +1321,16 @@ function renderSummaryTables(atribReal, atribBase) {
 				// o marcador só é exibido quando o PERFIL foi de fato necessário para
 				// esta pessoa conseguir esta lotação (ou seja, sem ele, o resultado
 				// natural por ordem de convocação não a colocaria aqui).
-				var perfilFoiNecessario = temPerfil(o.pessoa.nome, l.id) && atribBase[o.idx] !== l.id;
-				var tag = perfilFoiNecessario ? ' <span class="perfil-tag">PERFIL</span>' : '';
+				var obrig = perfilObrigatorio(o.pessoa.nome, l.id);
+				var perfilFoiNecessario = !obrig && temPerfil(o.pessoa.nome, l.id) && atribBase[o.idx] !== l.id;
+				var tag = obrig ? ' <span class="perfil-tag">PERFIL OBRIGATÓRIO</span>' : (perfilFoiNecessario ? ' <span class="perfil-tag">PERFIL</span>' : '');
 
-				var prefLabel = o.slotIndex >= 0 ? (o.slotIndex + 1) + 'ª preferência' : '';
+				var prefLabel = (!obrig && o.slotIndex >= 0) ? (o.slotIndex + 1) + 'ª preferência' : '';
 
 				$ol.append(
 					'<li>' + o.pessoa.nome +
 					' <span class="ordem-mini num">(ordem ' + pad2(o.pessoa.ordem) + ')</span>' +
-					' - ' + prefLabel + tag + '</li>'
+					(prefLabel ? ' - ' + prefLabel : '') + tag + '</li>'
 				);
 			});
 			$card.append($ol);
@@ -1346,14 +1382,15 @@ function gerarRelatorioExcel() {
 		});
 		ocupados = ordenarOcupados(ocupados, l.id);
 		ocupados.forEach(function(o) {
-			var prefLabel = o.slotIndex >= 0 ? (o.slotIndex + 1) + 'ª preferência' : '';
-			var perfilFoiNecessario = temPerfil(o.pessoa.nome, l.id) && atribBase[o.idx] !== l.id;
+			var obrig = perfilObrigatorio(o.pessoa.nome, l.id);
+			var prefLabel = (!obrig && o.slotIndex >= 0) ? (o.slotIndex + 1) + 'ª preferência' : '';
+			var perfilFoiNecessario = !obrig && temPerfil(o.pessoa.nome, l.id) && atribBase[o.idx] !== l.id;
 			linhasPreenchidas.push({
 				'Lotação': l.nome,
 				'Ordem': o.pessoa.ordem,
 				'Nome': o.pessoa.nome,
 				'Preferência utilizada': prefLabel,
-				'Observação': perfilFoiNecessario ? 'PERFIL' : ''
+				'Observação': obrig ? 'PERFIL OBRIGATÓRIO' : (perfilFoiNecessario ? 'PERFIL' : '')
 			});
 		});
 	});
