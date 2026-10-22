@@ -41,9 +41,9 @@ Cada lotação é colapsável: ao tocar nela, expande-se a lista nominal de quem
 
 | Lotação | Vagas propostas |
 |---|---:|
-| SUMAT | 14 |
+| SUMAT | 16 |
 | SUFISE | 10 |
-| SUSCOMEX | 8 |
+| SUSCOMEX | 6 |
 | COTIN | 5 |
 | SUCADI | 4 |
 | COFIS | 3 |
